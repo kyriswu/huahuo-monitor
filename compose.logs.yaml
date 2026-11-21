@@ -1,0 +1,81 @@
+# Central log stack. Always combine with compose.yaml via monitoring.sh.
+# Monitoring containers use available host CPU/memory without fixed quotas.
+services:
+  loki:
+    image: grafana/loki:3.7.10
+    restart: unless-stopped
+    command: ["-config.file=/etc/loki/loki.yml"]
+    ports:
+      - "127.0.0.1:3100:3100"
+    volumes:
+      - ./loki/loki.yml:/etc/loki/loki.yml:ro
+      - loki_data:/loki
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+  alloy:
+    image: grafana/alloy:v1.22.0
+    restart: unless-stopped
+    command:
+      - run
+      - --server.http.listen-addr=0.0.0.0:12345
+      - --storage.path=/var/lib/alloy
+      - --disable-reporting
+      - /etc/alloy/config.alloy
+    ports:
+      - "127.0.0.1:12345:12345"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./alloy/config.alloy:/etc/alloy/config.alloy:ro
+      - alloy_data:/var/lib/alloy
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+  rds-slow-logs:
+    image: python:3.13.11-alpine3.22
+    restart: unless-stopped
+    command: ["python", "/app/collector.py"]
+    environment:
+      PYTHONDONTWRITEBYTECODE: "1"
+      PYTHONUNBUFFERED: "1"
+      RDS_REGION_ID: ${RDS_REGION_ID:-cn-beijing}
+      RDS_INSTANCE_ID: ${RDS_INSTANCE_ID:-pgm-2ze7o54d25m8kn53}
+      RDS_DATABASE: ${RDS_DATABASE:-huahuo}
+      RDS_ENV: ${RDS_ENV:-test}
+      LOKI_PUSH_URL: http://loki:3100/loki/api/v1/push
+      STATE_DIR: /var/lib/rds-slow-logs
+      POLL_SECONDS: "60"
+    depends_on:
+      loki:
+        condition: service_started
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    secrets:
+      - source: rds_api
+        target: rds-api.json
+    volumes:
+      - ./rds-slow-logs/collector.py:/app/collector.py:ro
+      - rds_slow_logs_data:/var/lib/rds-slow-logs
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:9129/health"]
+      interval: 30s
+      timeout: 5s
+      start_period: 45s
+      retries: 3
+    logging:
+      driver: json-file
+      options:
+        max-size: "5m"
+        max-file: "3"
+volumes:
+  loki_data:
+  alloy_data:
+  rds_slow_logs_data:
+secrets:
+  rds_api:
+    file: ./secrets/rds-api.json

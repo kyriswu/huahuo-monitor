@@ -1,0 +1,980 @@
+{
+  "uid": "http-request-details",
+  "title": "HTTP 请求明细",
+  "description": "按接口、耗时和 traceId 查看已采集且仍保留的原始 HTTP 请求日志。",
+  "tags": [
+    "花火AI"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 2,
+  "editable": false,
+  "graphTooltip": 1,
+  "refresh": "",
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "timepicker": {
+    "refresh_intervals": [
+      "1m",
+      "5m",
+      "15m"
+    ]
+  },
+  "annotations": {
+    "list": []
+  },
+  "templating": {
+    "list": [
+      {
+        "name": "env",
+        "label": "环境",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "query": {
+          "query": "label_values(application_info{job=\"application\",service=~\"huahuo-server|huahuo-agent\"}, exported_env)",
+          "refId": "StandardVariableQuery"
+        },
+        "definition": "label_values(application_info{job=\"application\",service=~\"huahuo-server|huahuo-agent\"}, exported_env)",
+        "refresh": 1,
+        "multi": true,
+        "includeAll": true,
+        "allValue": ".*",
+        "sort": 1,
+        "current": {
+          "selected": true,
+          "text": [
+            "test"
+          ],
+          "value": [
+            "test"
+          ]
+        },
+        "options": []
+      },
+      {
+        "name": "service",
+        "label": "项目服务",
+        "type": "custom",
+        "query": "Server : huahuo-server,Agent : huahuo-agent",
+        "multi": true,
+        "includeAll": true,
+        "allValue": "huahuo-server|huahuo-agent",
+        "current": {
+          "selected": true,
+          "text": [
+            "All"
+          ],
+          "value": [
+            "$__all"
+          ]
+        },
+        "options": [
+          {
+            "text": "Server",
+            "value": "huahuo-server"
+          },
+          {
+            "text": "Agent",
+            "value": "huahuo-agent"
+          }
+        ]
+      },
+      {
+        "name": "host",
+        "label": "主机",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "query": {
+          "query": "label_values(application_info{job=\"application\",service=~\"${service:pipe}\",exported_env=~\"$env\",host=~\"$host\"}, host)",
+          "refId": "StandardVariableQuery"
+        },
+        "definition": "label_values(application_info{job=\"application\",service=~\"${service:pipe}\",exported_env=~\"$env\",host=~\"$host\"}, host)",
+        "refresh": 1,
+        "multi": true,
+        "includeAll": true,
+        "allValue": ".*",
+        "sort": 1,
+        "current": {
+          "selected": true,
+          "text": [
+            "All"
+          ],
+          "value": [
+            "$__all"
+          ]
+        },
+        "options": []
+      },
+      {
+        "name": "role",
+        "label": "角色",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "query": {
+          "query": "label_values(up{job=\"application\",service=~\"${service:pipe}\",env=~\"$env\",host=~\"$host\"}, role)",
+          "refId": "StandardVariableQuery"
+        },
+        "definition": "label_values(up{job=\"application\",service=~\"${service:pipe}\",env=~\"$env\",host=~\"$host\"}, role)",
+        "refresh": 1,
+        "multi": true,
+        "includeAll": true,
+        "allValue": ".*",
+        "sort": 1,
+        "current": {
+          "selected": true,
+          "text": [
+            "All"
+          ],
+          "value": [
+            "$__all"
+          ]
+        },
+        "options": []
+      },
+      {
+        "name": "traffic",
+        "label": "请求分类",
+        "type": "custom",
+        "query": "外部 API : public,内部 API : internal,管理端 : admin,其他 HTTP : other",
+        "multi": true,
+        "includeAll": true,
+        "allValue": "public|internal|admin|other",
+        "current": {
+          "selected": true,
+          "text": [
+            "All"
+          ],
+          "value": [
+            "$__all"
+          ]
+        },
+        "options": [
+          {
+            "text": "外部 API",
+            "value": "public",
+            "selected": false
+          },
+          {
+            "text": "内部 API",
+            "value": "internal",
+            "selected": false
+          },
+          {
+            "text": "管理端",
+            "value": "admin",
+            "selected": false
+          },
+          {
+            "text": "其他 HTTP",
+            "value": "other",
+            "selected": false
+          }
+        ]
+      },
+      {
+        "name": "business",
+        "label": "业务分组",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "query": {
+          "query": "query_result(count by (business,business_pattern) (label_replace((label_replace((label_replace((label_replace((label_replace((label_replace((label_replace((label_replace((label_replace((label_replace((label_replace((label_replace((label_replace((label_replace((label_replace((label_replace((label_replace((label_replace((label_replace((label_replace((label_replace((label_replace((count_over_time(http_requests_total{job=\"application\",service=~\"${service:pipe}\",exported_env=~\"$env\",host=~\"$host\",traffic=~\"${traffic:pipe}\"}[$__range])),\"business\",\"$1\",\"route\",\"(.*)\")),\"business_pattern\",\"$1\",\"route\",\"(.*)\")),\"business\",\"$2\",\"route\",\"/(api|internal|admin/api)/v[0-9]+/([^/]+)(/.*)?\")),\"business_pattern\",\"/(api|internal|admin/api)/v[0-9]+/$2(/.*)?\",\"route\",\"/(api|internal|admin/api)/v[0-9]+/([^/]+)(/.*)?\")),\"business\",\"管理页面与资源\",\"route\",\"/admin(/assets/.*)?\")),\"business_pattern\",\"/admin(/assets/.*)?\",\"route\",\"/admin(/assets/.*)?\")),\"business\",\"未匹配路径\",\"route\",\"unmatched\")),\"business\",\"Agent 对话与运行\",\"route\",\"/api/agents(/.*)?\")),\"business_pattern\",\"/api/agents(/.*)?\",\"route\",\"/api/agents(/.*)?\")),\"business\",\"Agent 登录认证\",\"route\",\"/(studio-auth|api/auth)(/.*)?\")),\"business_pattern\",\"/(studio-auth|api/auth)(/.*)?\",\"route\",\"/(studio-auth|api/auth)(/.*)?\")),\"business\",\"其他 HTTP\",\"route\",\"/other\")),\"business_pattern\",\"/other\",\"route\",\"/other\")),\"business\",\"网关鉴权\",\"business\",\"gateway\")),\"business\",\"账号认证\",\"business\",\"auth\")),\"business\",\"用户信息\",\"business\",\"me\")),\"business\",\"系统配置\",\"business\",\"configuration\")),\"business\",\"文档调试\",\"business\",\"document-trials\")),\"business\",\"处理节点\",\"business\",\"processing-nodes\")),\"business\",\"文档解析\",\"business\",\"document-parser\")),\"business\",\"管理端登录\",\"business\",\"login\")),\"business\",\"管理端登出\",\"business\",\"logout\")))",
+          "refId": "StandardVariableQuery"
+        },
+        "definition": "query_result(count by (business,business_pattern) (label_replace((label_replace((label_replace((label_replace((label_replace((label_replace((label_replace((label_replace((label_replace((label_replace((label_replace((label_replace((label_replace((label_replace((label_replace((label_replace((label_replace((label_replace((label_replace((label_replace((label_replace((label_replace((count_over_time(http_requests_total{job=\"application\",service=~\"${service:pipe}\",exported_env=~\"$env\",host=~\"$host\",traffic=~\"${traffic:pipe}\"}[$__range])),\"business\",\"$1\",\"route\",\"(.*)\")),\"business_pattern\",\"$1\",\"route\",\"(.*)\")),\"business\",\"$2\",\"route\",\"/(api|internal|admin/api)/v[0-9]+/([^/]+)(/.*)?\")),\"business_pattern\",\"/(api|internal|admin/api)/v[0-9]+/$2(/.*)?\",\"route\",\"/(api|internal|admin/api)/v[0-9]+/([^/]+)(/.*)?\")),\"business\",\"管理页面与资源\",\"route\",\"/admin(/assets/.*)?\")),\"business_pattern\",\"/admin(/assets/.*)?\",\"route\",\"/admin(/assets/.*)?\")),\"business\",\"未匹配路径\",\"route\",\"unmatched\")),\"business\",\"Agent 对话与运行\",\"route\",\"/api/agents(/.*)?\")),\"business_pattern\",\"/api/agents(/.*)?\",\"route\",\"/api/agents(/.*)?\")),\"business\",\"Agent 登录认证\",\"route\",\"/(studio-auth|api/auth)(/.*)?\")),\"business_pattern\",\"/(studio-auth|api/auth)(/.*)?\",\"route\",\"/(studio-auth|api/auth)(/.*)?\")),\"business\",\"其他 HTTP\",\"route\",\"/other\")),\"business_pattern\",\"/other\",\"route\",\"/other\")),\"business\",\"网关鉴权\",\"business\",\"gateway\")),\"business\",\"账号认证\",\"business\",\"auth\")),\"business\",\"用户信息\",\"business\",\"me\")),\"business\",\"系统配置\",\"business\",\"configuration\")),\"business\",\"文档调试\",\"business\",\"document-trials\")),\"business\",\"处理节点\",\"business\",\"processing-nodes\")),\"business\",\"文档解析\",\"business\",\"document-parser\")),\"business\",\"管理端登录\",\"business\",\"login\")),\"business\",\"管理端登出\",\"business\",\"logout\")))",
+        "regex": "/business=\"(?<text>[^\"]+)\",?\\s*business_pattern=\"(?<value>[^\"]+)\"/",
+        "refresh": 2,
+        "multi": true,
+        "includeAll": true,
+        "allValue": ".*",
+        "sort": 1,
+        "current": {
+          "selected": true,
+          "text": [
+            "All"
+          ],
+          "value": [
+            "$__all"
+          ]
+        },
+        "options": []
+      },
+      {
+        "name": "slow_seconds",
+        "label": "慢请求阈值（大于）",
+        "type": "custom",
+        "query": "50 毫秒 : 0.05,100 毫秒 : 0.1,250 毫秒 : 0.25,500 毫秒 : 0.5,1 秒 : 1,2.5 秒 : 2.5,5 秒 : 5,10 秒 : 10,30 秒 : 30,60 秒 : 60,120 秒 : 120",
+        "multi": false,
+        "current": {
+          "text": "1 秒",
+          "value": "1",
+          "selected": true
+        },
+        "options": [
+          {
+            "text": "50 毫秒",
+            "value": "0.05",
+            "selected": false
+          },
+          {
+            "text": "100 毫秒",
+            "value": "0.1",
+            "selected": false
+          },
+          {
+            "text": "250 毫秒",
+            "value": "0.25",
+            "selected": false
+          },
+          {
+            "text": "500 毫秒",
+            "value": "0.5",
+            "selected": false
+          },
+          {
+            "text": "1 秒",
+            "value": "1",
+            "selected": true
+          },
+          {
+            "text": "2.5 秒",
+            "value": "2.5",
+            "selected": false
+          },
+          {
+            "text": "5 秒",
+            "value": "5",
+            "selected": false
+          },
+          {
+            "text": "10 秒",
+            "value": "10",
+            "selected": false
+          },
+          {
+            "text": "30 秒",
+            "value": "30",
+            "selected": false
+          },
+          {
+            "text": "60 秒",
+            "value": "60",
+            "selected": false
+          },
+          {
+            "text": "120 秒",
+            "value": "120",
+            "selected": false
+          }
+        ]
+      },
+      {
+        "name": "route",
+        "label": "接口",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "query": {
+          "query": "label_values(http_request_duration_seconds_count{job=\"application\",service=~\"${service:pipe}\",exported_env=~\"$env\",host=~\"$host\",traffic=~\"${traffic:pipe}\",route=~\"${business:pipe}\",role=~\"$role\"}, route)",
+          "refId": "StandardVariableQuery"
+        },
+        "definition": "label_values(http_request_duration_seconds_count{job=\"application\",service=~\"${service:pipe}\",exported_env=~\"$env\",host=~\"$host\",traffic=~\"${traffic:pipe}\",route=~\"${business:pipe}\",role=~\"$role\"}, route)",
+        "refresh": 1,
+        "multi": true,
+        "includeAll": true,
+        "allValue": ".*",
+        "sort": 1,
+        "current": {
+          "selected": true,
+          "text": [
+            "All"
+          ],
+          "value": [
+            "$__all"
+          ]
+        },
+        "options": []
+      },
+      {
+        "name": "method",
+        "label": "方法",
+        "type": "custom",
+        "query": "GET,POST,PUT,PATCH,DELETE,HEAD,OPTIONS",
+        "multi": true,
+        "includeAll": true,
+        "allValue": ".*",
+        "current": {
+          "text": [
+            "All"
+          ],
+          "value": [
+            "$__all"
+          ],
+          "selected": true
+        }
+      },
+      {
+        "name": "request_mode",
+        "label": "请求范围",
+        "type": "custom",
+        "query": "全部完成请求 : all,仅慢请求 : slow",
+        "multi": false,
+        "current": {
+          "text": "全部完成请求",
+          "value": "all",
+          "selected": true
+        },
+        "options": [
+          {
+            "text": "全部完成请求",
+            "value": "all",
+            "selected": true
+          },
+          {
+            "text": "仅慢请求",
+            "value": "slow",
+            "selected": false
+          }
+        ]
+      },
+      {
+        "name": "trace_id",
+        "label": "请求 traceId",
+        "type": "textbox",
+        "hide": 2,
+        "query": "__no_trace_selected__",
+        "current": {
+          "text": "__no_trace_selected__",
+          "value": "__no_trace_selected__",
+          "selected": true
+        },
+        "options": []
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "title": "HTTP 请求日志详情",
+      "type": "text",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 3
+      },
+      "options": {
+        "mode": "markdown",
+        "content": "当前查看 **${request_mode:text}**；慢请求模式的阈值为 **大于 ${slow_seconds:text}**。用顶部服务、分类、业务和接口筛选，日志保留 72 小时。\n\n只展示规范完成事件。点击 **traceId** 查关联日志；**OTel Trace ID** 是标准调用标识。"
+      }
+    },
+    {
+      "id": 2,
+      "title": "日志保留与查询范围",
+      "type": "text",
+      "gridPos": {
+        "x": 0,
+        "y": 3,
+        "w": 12,
+        "h": 4
+      },
+      "options": {
+        "mode": "markdown",
+        "content": "日志保留 **72 小时**；下方显示所选时段最近 **200 条**匹配请求。缩小时间范围或选择接口，可以继续查看其他记录。\n\n指标保存时间可能长于日志。采集前、已过期或应用未写出的日志无法补回。"
+      }
+    },
+    {
+      "id": 3,
+      "title": "所选时段慢请求估算数",
+      "type": "stat",
+      "gridPos": {
+        "x": 12,
+        "y": 3,
+        "w": 6,
+        "h": 4
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "description": "Prometheus 采样估算，历史保留范围通常大于日志；统计数量不代表对应日志一定仍存在。",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "noValue": "暂无数据",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "blue"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "clamp_min(sum(increase(http_request_duration_seconds_count{job=\"application\",service=~\"${service:pipe}\",exported_env=~\"$env\",host=~\"$host\",traffic=~\"${traffic:pipe}\",route=~\"${business:pipe}\",role=~\"$role\",method=~\"$method\",route=~\"$route\"}[$__range])) - sum(increase(http_request_duration_seconds_bucket{job=\"application\",service=~\"${service:pipe}\",exported_env=~\"$env\",host=~\"$host\",traffic=~\"${traffic:pipe}\",route=~\"${business:pipe}\",role=~\"$role\",method=~\"$method\",route=~\"$route\",le=\"$slow_seconds\"}[$__range])), 0) or (0 * count(up{job=\"application\",service=~\"${service:pipe}\",env=~\"$env\",host=~\"$host\",role=~\"$role\"}))",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "legendFormat": "",
+          "instant": true,
+          "range": false,
+          "format": "time_series"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value",
+        "orientation": "horizontal",
+        "justifyMode": "center"
+      }
+    },
+    {
+      "id": 4,
+      "title": "列表为空时",
+      "type": "text",
+      "gridPos": {
+        "x": 18,
+        "y": 3,
+        "w": 6,
+        "h": 4
+      },
+      "options": {
+        "mode": "markdown",
+        "content": "检查**时间、服务和接口**；慢请求模式还需检查阈值。\n\n只显示采集后仍保留的日志，保留 72 小时。"
+      }
+    },
+    {
+      "id": 9,
+      "title": "逐条请求 · 点击 traceId 查看原始日志",
+      "type": "table",
+      "gridPos": {
+        "x": 0,
+        "y": 7,
+        "w": 24,
+        "h": 12
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "description": "直接读取最新 http.server.completed 完成事件，不关联入站记录。中断连接不混入完成请求。最近最多 200 条，日志保留 72 小时；HTTP 耗时包含流连接寿命。traceId 是业务关联号，trace_id/span_id 是 OTel 标识。",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "noValue": "当前范围没有匹配的完成事件",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "decimals": 0,
+          "custom": {
+            "align": "left",
+            "cellOptions": {
+              "type": "auto"
+            }
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "角色"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "api-server": {
+                        "text": "API 服务"
+                      },
+                      "admin": {
+                        "text": "管理端"
+                      },
+                      "worker": {
+                        "text": "后台处理"
+                      },
+                      "scheduler": {
+                        "text": "定时任务"
+                      },
+                      "agent": {
+                        "text": "Agent"
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "custom.width",
+                "value": 120
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "服务"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "huahuo-server": {
+                        "text": "Server"
+                      },
+                      "huahuo-agent": {
+                        "text": "Agent"
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "custom.width",
+                "value": 110
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "发生时间"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "dateTimeAsIso"
+              },
+              {
+                "id": "custom.width",
+                "value": 190
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "角色"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 95
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "方法"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 65
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "状态码"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 75
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "耗时"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "ms"
+              },
+              {
+                "id": "decimals",
+                "value": 2
+              },
+              {
+                "id": "custom.width",
+                "value": 95
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "请求分类"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "public": {
+                        "text": "外部 API"
+                      },
+                      "internal": {
+                        "text": "内部 API"
+                      },
+                      "admin": {
+                        "text": "管理端"
+                      },
+                      "other": {
+                        "text": "其他 HTTP"
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "custom.width",
+                "value": 100
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "HTTP 结果"
+            },
+            "properties": [
+              {
+                "id": "custom.hidden",
+                "value": true
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Span ID"
+            },
+            "properties": [
+              {
+                "id": "custom.hidden",
+                "value": true
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "进程实例"
+            },
+            "properties": [
+              {
+                "id": "custom.hidden",
+                "value": true
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "traceId"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 280
+              },
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "查看此业务关联号的原始日志",
+                    "url": "/d/http-request-details?from=${__from}&to=${__to}&${env:queryparam}&${service:queryparam}&${traffic:queryparam}&${business:queryparam}&var-trace_id=${__data.fields[\"traceId\"]:percentencode}&viewPanel=12",
+                    "oneClick": true
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "OTel Trace ID"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 270
+              }
+            ]
+          }
+        ]
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "{service=~\"${service:pipe}\",env=~\"$env\",host=~\"$host\",role=~\"$role\"} |= \"http.server.completed\" | json event=\"event\", service_instance_id=\"service_instance_id\", traceId=\"traceId\", trace_id=\"trace_id\", span_id=\"span_id\", method=\"method\", route=\"route\", traffic=\"traffic\", outcome=\"outcome\", status=\"statusCode\", elapsed_ms=\"durationMs\" | __error__=\"\" | event=\"http.server.completed\" | outcome!=\"aborted\" | service_instance_id!=\"\" | traceId!=\"\" | status!=\"\" | elapsed_ms!=\"\" | traffic=~\"${traffic:pipe}\" | route=~\"${business:pipe}\" | method=~\"$method\" | route=~\"$route\" | label_format elapsed=\"{{.elapsed_ms}}ms\" | elapsed >= 0s | __error__=\"\" | label_format selected_mode=\"${request_mode:raw}\" | (selected_mode=\"all\" or (selected_mode=\"slow\" and elapsed > ${slow_seconds}s)) | __error__=\"\" | line_format `{\"completed_at\":{{__timestamp__ | unixEpochMillis}},\"service\":{{printf \"%q\" .service}},\"role\":{{printf \"%q\" .role}},\"method\":{{printf \"%q\" .method}},\"route\":{{printf \"%q\" .route}},\"status\":{{.status}},\"elapsed_ms\":{{.elapsed_ms}},\"traffic\":{{printf \"%q\" .traffic}},\"outcome\":{{printf \"%q\" .outcome}},\"traceId\":{{printf \"%q\" .traceId}},\"trace_id\":{{printf \"%q\" .trace_id}},\"span_id\":{{printf \"%q\" .span_id}},\"service_instance_id\":{{printf \"%q\" .service_instance_id}}}`",
+          "queryType": "range",
+          "editorMode": "code",
+          "direction": "backward",
+          "maxLines": 200
+        }
+      ],
+      "options": {
+        "showHeader": true,
+        "cellHeight": "md",
+        "sortBy": [
+          {
+            "displayName": "发生时间",
+            "desc": true
+          }
+        ],
+        "footer": {
+          "show": false
+        }
+      },
+      "transformations": [
+        {
+          "id": "extractFields",
+          "options": {
+            "source": "Line",
+            "format": "json",
+            "replace": true,
+            "keepTime": false
+          }
+        },
+        {
+          "id": "merge",
+          "options": {}
+        },
+        {
+          "id": "convertFieldType",
+          "options": {
+            "conversions": [
+              {
+                "targetField": "completed_at",
+                "destinationType": "number"
+              },
+              {
+                "targetField": "status",
+                "destinationType": "number"
+              },
+              {
+                "targetField": "elapsed_ms",
+                "destinationType": "number"
+              }
+            ]
+          }
+        },
+        {
+          "id": "filterFieldsByName",
+          "options": {
+            "include": {
+              "names": [
+                "completed_at",
+                "service",
+                "role",
+                "method",
+                "route",
+                "status",
+                "elapsed_ms",
+                "traffic",
+                "outcome",
+                "traceId",
+                "trace_id",
+                "span_id",
+                "service_instance_id"
+              ]
+            }
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {},
+            "indexByName": {
+              "completed_at": 0,
+              "service": 1,
+              "role": 2,
+              "method": 3,
+              "route": 4,
+              "status": 5,
+              "elapsed_ms": 6,
+              "traffic": 7,
+              "outcome": 8,
+              "traceId": 9,
+              "trace_id": 10,
+              "span_id": 11,
+              "service_instance_id": 12
+            },
+            "renameByName": {
+              "completed_at": "发生时间",
+              "service": "服务",
+              "role": "角色",
+              "method": "方法",
+              "route": "接口",
+              "status": "状态码",
+              "elapsed_ms": "耗时",
+              "traffic": "请求分类",
+              "outcome": "HTTP 结果",
+              "traceId": "traceId",
+              "trace_id": "OTel Trace ID",
+              "span_id": "Span ID",
+              "service_instance_id": "进程实例"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": 13,
+      "title": "查看原始日志",
+      "type": "text",
+      "gridPos": {
+        "x": 0,
+        "y": 19,
+        "w": 24,
+        "h": 2
+      },
+      "options": {
+        "mode": "markdown",
+        "content": "点击上方请求的 **traceId** 打开下方面板。只显示应用实际写出的日志；未记录的请求体、响应体或业务执行过程无法补出。"
+      }
+    },
+    {
+      "id": 12,
+      "title": "请求原始日志",
+      "type": "logs",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 21,
+        "w": 24,
+        "h": 13
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "description": "按业务 traceId 精确查两个服务的关联日志，保留环境和时间；可展开字段。最多返回 500 条，超出时缩小时间范围继续查询。这不是 Trace 后端中的完整 span 调用树。",
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "queryType": "range",
+          "editorMode": "code",
+          "direction": "forward",
+          "maxLines": 500,
+          "expr": "{service=~\"huahuo-server|huahuo-agent\",env=~\"$env\"} |= \"$trace_id\" | json | __error__=\"\" | service_instance_id!=\"\" | traceId!=\"\" | traceId=\"$trace_id\""
+        }
+      ],
+      "options": {
+        "showTime": true,
+        "showLabels": false,
+        "showCommonLabels": false,
+        "wrapLogMessage": true,
+        "prettifyLogMessage": true,
+        "enableLogDetails": true,
+        "dedupStrategy": "none",
+        "sortOrder": "Ascending"
+      }
+    }
+  ],
+  "links": [
+    {
+      "title": "服务总览",
+      "type": "link",
+      "url": "/d/monitoring-overview",
+      "keepTime": true,
+      "includeVars": true
+    },
+    {
+      "title": "HTTP 接口",
+      "type": "link",
+      "url": "/d/huahuo-server",
+      "keepTime": true,
+      "includeVars": true
+    },
+    {
+      "title": "HTTP 错误",
+      "type": "link",
+      "url": "/d/http-errors",
+      "keepTime": true,
+      "includeVars": true
+    },
+    {
+      "title": "HTTP 慢请求",
+      "type": "link",
+      "url": "/d/slow-requests",
+      "keepTime": true,
+      "includeVars": true
+    },
+    {
+      "title": "实时容器日志 ↗",
+      "type": "link",
+      "url": "https://dozzle.chuda.cc/",
+      "targetBlank": true
+    }
+  ]
+}

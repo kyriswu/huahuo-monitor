@@ -1,0 +1,98 @@
+name: monitoring
+services:
+  prometheus:
+    image: prom/prometheus:v3.16.0
+    networks:
+      - default
+      - applications
+    restart: unless-stopped
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=30d
+      - --storage.tsdb.retention.size=10GB
+    ports:
+      - "127.0.0.1:9090:9090"
+    volumes:
+      - ./prometheus:/etc/prometheus:ro
+      - ./targets:/etc/prometheus-targets:ro
+      - prometheus_data:/prometheus
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:9090/-/ready"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+    logging: &logging
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+  grafana:
+    image: grafana/grafana:13.3.1
+    restart: unless-stopped
+    depends_on:
+      prometheus:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:3300:3000"
+    environment:
+      GF_SERVER_DOMAIN: ${GRAFANA_DOMAIN:-grafana.chuda.cc}
+      GF_SERVER_ROOT_URL: ${GRAFANA_ROOT_URL:-https://grafana.chuda.cc/}
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD__FILE: /run/secrets/grafana_admin_password
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_AUTH_ANONYMOUS_ENABLED: "false"
+      GF_SECURITY_COOKIE_SECURE: "true"
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+      GF_ANALYTICS_CHECK_FOR_UPDATES: "false"
+    secrets:
+      - grafana_admin_password
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:3000/api/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    logging: *logging
+  dozzle:
+    image: amir20/dozzle:v11.4.3
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8888:8080"
+    environment:
+      DOZZLE_HOSTNAME: ${DOZZLE_HOSTNAME:-i-2zegtoygiiked53yntmj}
+      DOZZLE_AUTH_PROVIDER: simple
+      DOZZLE_ENABLE_ACTIONS: "false"
+      DOZZLE_ENABLE_SHELL: "false"
+      DOZZLE_NO_ANALYTICS: "true"
+      DOZZLE_DISABLE_SETUP_WIZARD: "true"
+      DOZZLE_RELEASE_CHECK_MODE: manual
+      DOZZLE_IMAGE_CHECK_MODE: off
+      DOZZLE_REMOTE_AGENT: ${DOZZLE_REMOTE_AGENT:-}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - dozzle_data:/data
+      - ./dozzle/users.yml:/data/users.yml:ro
+    healthcheck:
+      test: ["CMD", "/dozzle", "healthcheck"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+    logging: *logging
+
+volumes:
+  prometheus_data:
+  grafana_data:
+  dozzle_data:
+secrets:
+  grafana_admin_password:
+    file: ./secrets/grafana_admin_password
+
+networks:
+  applications:
+    external: true
+    name: ${APPLICATION_NETWORK:-huahuo-server-dev_backend}

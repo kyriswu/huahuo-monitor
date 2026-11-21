@@ -1,0 +1,15 @@
+# Applied by monitoring.sh while grafana/.light-mode exists.
+# Alert evaluation and the built-in Alertmanager remain enabled.
+# Lean features only: CPU and memory scale with available host resources.
+services:
+  grafana:
+    environment:
+      GF_UNIFIED_ALERTING_ENABLED: "true"
+      GF_UNIFIED_ALERTING_EXECUTE_ALERTS: "true"
+      GF_PLUGINS_DISABLE_PLUGINS: cloudwatch,elasticsearch,stackdriver,grafana-azure-monitor-datasource,grafana-postgresql-datasource,grafana-pyroscope-datasource,graphite,influxdb,jaeger,mssql,mysql,opentsdb,tempo,grafana-testdata-datasource,zipkin,grafana-advisor-app,grafana-lokiexplore-app,grafana-metricsdrilldown-app,grafana-pyroscope-app,grafana-exploretraces-app
+      GF_PLUGINS_PREINSTALL_DISABLED: "true"
+      GF_PLUGINS_PREINSTALL_AUTO_UPDATE: "false"
+      GF_LIVE_MAX_CONNECTIONS: "0"
+      GF_ANALYTICS_CHECK_FOR_PLUGIN_UPDATES: "false"
+      GF_NEWS_NEWS_FEED_ENABLED: "false"
+      GF_DASHBOARDS_MIN_REFRESH_INTERVAL: 1m

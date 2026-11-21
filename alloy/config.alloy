@@ -1,0 +1,120 @@
+logging {
+  level = "warn"
+}
+
+discovery.docker "business" {
+  host = "unix:///var/run/docker.sock"
+  refresh_interval = "30s"
+
+  filter {
+    name = "label"
+    values = ["com.docker.compose.project=huahuo-server-dev"]
+  }
+  filter {
+    name = "name"
+    values = ["^/?huahuo-server-dev-(api-server|admin|worker|scheduler)-[0-9]+$"]
+  }
+}
+
+discovery.relabel "business" {
+  targets = discovery.docker.business.targets
+
+  rule {
+    source_labels = ["__meta_docker_container_label_com_docker_compose_project"]
+    regex = "huahuo-server-dev"
+    action = "keep"
+  }
+  rule {
+    source_labels = ["__meta_docker_container_label_com_docker_compose_service"]
+    regex = "api-server|admin|worker|scheduler"
+    action = "keep"
+  }
+  rule {
+    source_labels = ["__meta_docker_container_label_com_docker_compose_service"]
+    target_label = "role"
+  }
+  rule {
+    source_labels = ["__meta_docker_container_name"]
+    regex = "/(.*)"
+    target_label = "container_name"
+  }
+  rule {
+    target_label = "env"
+    replacement = "test"
+  }
+  rule {
+    target_label = "host"
+    replacement = "i-2zegtoygiiked53yntmj"
+  }
+  rule {
+    target_label = "service"
+    replacement = "huahuo-server"
+  }
+}
+
+// Keep JSON lines intact. traceId, routes and user fields are not indexed labels.
+loki.source.docker "business" {
+  host = "unix:///var/run/docker.sock"
+  targets = discovery.relabel.business.output
+  forward_to = [loki.write.local.receiver]
+}
+
+discovery.docker "agent" {
+  host = "unix:///var/run/docker.sock"
+  refresh_interval = "30s"
+  filter {
+    name = "label"
+    values = ["com.docker.compose.project=huahuo-agent"]
+  }
+  filter {
+    name = "name"
+    values = ["^/?huahuo-agent-agent-[0-9]+$"]
+  }
+}
+
+discovery.relabel "agent" {
+  targets = discovery.docker.agent.targets
+  rule {
+    source_labels = ["__meta_docker_container_label_com_docker_compose_service"]
+    regex = "agent"
+    action = "keep"
+  }
+  rule {
+    source_labels = ["__meta_docker_container_name"]
+    regex = "/(.*)"
+    target_label = "container_name"
+  }
+  rule {
+    target_label = "env"
+    replacement = "test"
+  }
+  rule {
+    target_label = "host"
+    replacement = "i-2zegtoygiiked53yntmj"
+  }
+  rule {
+    target_label = "service"
+    replacement = "huahuo-agent"
+  }
+  rule {
+    target_label = "role"
+    replacement = "agent"
+  }
+}
+
+loki.source.docker "agent" {
+  host = "unix:///var/run/docker.sock"
+  targets = discovery.relabel.agent.output
+  forward_to = [loki.write.local.receiver]
+}
+
+loki.write "local" {
+  endpoint {
+    url = "http://loki:3100/loki/api/v1/push"
+    batch_wait = "1s"
+    batch_size = "256KiB"
+    min_backoff_period = "500ms"
+    max_backoff_period = "30s"
+    max_backoff_retries = 10
+  }
+}

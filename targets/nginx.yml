@@ -1,0 +1,7 @@
+# Existing Vector prometheus_exporter endpoint, if available.
+# - targets: ["10.0.0.10:9598"]
+#   labels:
+#     env: prod
+#     host: app-01
+#     service: nginx
+[]

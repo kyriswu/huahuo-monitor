@@ -1,0 +1,2312 @@
+{
+  "uid": "server-workloads",
+  "title": "Server 任务与依赖",
+  "description": "按统一观测契约查看任务队列、处理尝试、任务终态、依赖调用、RAG与状态流；无样本保留为空。",
+  "tags": [
+    "花火AI"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 2,
+  "editable": false,
+  "graphTooltip": 1,
+  "refresh": "1m",
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "timepicker": {
+    "refresh_intervals": [
+      "1m",
+      "5m",
+      "15m"
+    ]
+  },
+  "annotations": {
+    "list": []
+  },
+  "templating": {
+    "list": [
+      {
+        "name": "env",
+        "label": "环境",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "query": {
+          "query": "label_values(application_info{job=\"application\",service=\"huahuo-server\"}, exported_env)",
+          "refId": "StandardVariableQuery"
+        },
+        "definition": "label_values(application_info{job=\"application\",service=\"huahuo-server\"}, exported_env)",
+        "refresh": 1,
+        "multi": true,
+        "includeAll": true,
+        "allValue": ".*",
+        "sort": 1,
+        "current": {
+          "selected": true,
+          "text": [
+            "test"
+          ],
+          "value": [
+            "test"
+          ]
+        },
+        "options": []
+      },
+      {
+        "name": "host",
+        "label": "主机",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "query": {
+          "query": "label_values(application_info{job=\"application\",service=\"huahuo-server\",exported_env=~\"$env\"}, host)",
+          "refId": "StandardVariableQuery"
+        },
+        "definition": "label_values(application_info{job=\"application\",service=\"huahuo-server\",exported_env=~\"$env\"}, host)",
+        "refresh": 1,
+        "multi": true,
+        "includeAll": true,
+        "allValue": ".*",
+        "sort": 1,
+        "current": {
+          "selected": true,
+          "text": [
+            "All"
+          ],
+          "value": [
+            "$__all"
+          ]
+        },
+        "options": []
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "title": "待处理任务 · 新鲜快照",
+      "type": "stat",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 6,
+        "h": 4
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "description": "到期可调度的 queued/retry_scheduled；排除运行中、外部等待与未来重试。先排除超过60秒的快照，同一共享队列多Scheduler取max后才汇总队列。",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "noValue": "无新鲜快照",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "blue"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(max by (exported_env,queue) (task_pending{job=\"application\",service=\"huahuo-server\",exported_env=~\"$env\",host=~\"$host\",role=\"scheduler\"} and on (job,instance,exported_env,service,role,queue) (time() - task_backlog_observed_timestamp_seconds{job=\"application\",service=\"huahuo-server\",exported_env=~\"$env\",host=~\"$host\",role=\"scheduler\"} < 60)))",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "legendFormat": "",
+          "instant": true,
+          "range": false,
+          "format": "time_series"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value",
+        "orientation": "horizontal",
+        "justifyMode": "center"
+      }
+    },
+    {
+      "id": 2,
+      "title": "最老可执行任务等待",
+      "type": "stat",
+      "gridPos": {
+        "x": 6,
+        "y": 0,
+        "w": 6,
+        "h": 4
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "description": "从本次 available_at 算起；空队列为0，过期或未上报的快照留空。",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "noValue": "无新鲜快照",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "blue"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max(max by (exported_env,queue) (task_oldest_waiting_seconds{job=\"application\",service=\"huahuo-server\",exported_env=~\"$env\",host=~\"$host\",role=\"scheduler\"} and on (job,instance,exported_env,service,role,queue) (time() - task_backlog_observed_timestamp_seconds{job=\"application\",service=\"huahuo-server\",exported_env=~\"$env\",host=~\"$host\",role=\"scheduler\"} < 60)))",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "legendFormat": "",
+          "instant": true,
+          "range": false,
+          "format": "time_series"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value",
+        "orientation": "horizontal",
+        "justifyMode": "center"
+      }
+    },
+    {
+      "id": 3,
+      "title": "时段任务终态变更",
+      "type": "stat",
+      "gridPos": {
+        "x": 12,
+        "y": 0,
+        "w": 6,
+        "h": 4
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "description": "已提交的 succeeded/failed/cancelled 终态；不同于处理尝试数，也不是所选时段创建任务的成功率。",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "noValue": "尚无终态样本",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "blue"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(increase(task_terminal_total{job=\"application\",service=\"huahuo-server\",exported_env=~\"$env\",host=~\"$host\"}[$__range]))",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "legendFormat": "",
+          "instant": true,
+          "range": false,
+          "format": "time_series"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value",
+        "orientation": "horizontal",
+        "justifyMode": "center"
+      }
+    },
+    {
+      "id": 4,
+      "title": "时段已提交处理尝试",
+      "type": "stat",
+      "gridPos": {
+        "x": 18,
+        "y": 0,
+        "w": 6,
+        "h": 4
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "description": "finish/fail事务提交后的success/failure尝试。重试可产生多次尝试；延后继续、回滚和未知外部结果不伪造完成。",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "noValue": "尚无尝试样本",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "blue"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(increase(task_processing_attempts_total{job=\"application\",service=\"huahuo-server\",exported_env=~\"$env\",host=~\"$host\"}[$__range]))",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "legendFormat": "",
+          "instant": true,
+          "range": false,
+          "format": "time_series"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value",
+        "orientation": "horizontal",
+        "justifyMode": "center"
+      }
+    },
+    {
+      "id": 5,
+      "title": "任务队列 · 数量、等待与快照新鲜度",
+      "type": "table",
+      "gridPos": {
+        "x": 0,
+        "y": 4,
+        "w": 24,
+        "h": 7
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "description": "共享PostgreSQL队列按环境/队列取max，避免多Scheduler重复累计。数量和等待仅采用60秒内成功快照；快照年龄显示最旧副本，便于识别停滞。全部过期时数量留空，不填0。",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "noValue": "未上报",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "decimals": 0,
+          "custom": {
+            "align": "left",
+            "cellOptions": {
+              "type": "auto"
+            }
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "角色"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "api-server": {
+                        "text": "API 服务"
+                      },
+                      "admin": {
+                        "text": "管理端"
+                      },
+                      "worker": {
+                        "text": "后台处理"
+                      },
+                      "scheduler": {
+                        "text": "定时任务"
+                      },
+                      "agent": {
+                        "text": "Agent"
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "custom.width",
+                "value": 120
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "服务"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "huahuo-server": {
+                        "text": "Server"
+                      },
+                      "huahuo-agent": {
+                        "text": "Agent"
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "custom.width",
+                "value": 110
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "最老等待"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "s"
+              },
+              {
+                "id": "decimals",
+                "value": 1
+              },
+              {
+                "id": "noValue",
+                "value": "无新鲜快照"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "待处理数"
+            },
+            "properties": [
+              {
+                "id": "noValue",
+                "value": "无新鲜快照"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "最旧快照年龄"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "s"
+              },
+              {
+                "id": "decimals",
+                "value": 1
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "thresholds"
+                }
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "value": null,
+                      "color": "green"
+                    },
+                    {
+                      "value": 60,
+                      "color": "red"
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "队列"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "content": {
+                        "text": "内容处理"
+                      },
+                      "ai": {
+                        "text": "AI"
+                      },
+                      "commercial": {
+                        "text": "商业事务"
+                      },
+                      "maintenance": {
+                        "text": "维护"
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max by (exported_env,queue) (task_pending{job=\"application\",service=\"huahuo-server\",exported_env=~\"$env\",host=~\"$host\",role=\"scheduler\"} and on (job,instance,exported_env,service,role,queue) (time() - task_backlog_observed_timestamp_seconds{job=\"application\",service=\"huahuo-server\",exported_env=~\"$env\",host=~\"$host\",role=\"scheduler\"} < 60))",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "legendFormat": "",
+          "instant": true,
+          "range": false,
+          "format": "table"
+        },
+        {
+          "refId": "B",
+          "expr": "max by (exported_env,queue) (task_oldest_waiting_seconds{job=\"application\",service=\"huahuo-server\",exported_env=~\"$env\",host=~\"$host\",role=\"scheduler\"} and on (job,instance,exported_env,service,role,queue) (time() - task_backlog_observed_timestamp_seconds{job=\"application\",service=\"huahuo-server\",exported_env=~\"$env\",host=~\"$host\",role=\"scheduler\"} < 60))",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "legendFormat": "",
+          "instant": true,
+          "range": false,
+          "format": "table"
+        },
+        {
+          "refId": "C",
+          "expr": "max by (exported_env,queue) (time() - task_backlog_observed_timestamp_seconds{job=\"application\",service=\"huahuo-server\",exported_env=~\"$env\",host=~\"$host\",role=\"scheduler\"})",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "legendFormat": "",
+          "instant": true,
+          "range": false,
+          "format": "table"
+        }
+      ],
+      "options": {
+        "showHeader": true,
+        "cellHeight": "md",
+        "sortBy": [
+          {
+            "displayName": "Value",
+            "desc": true
+          }
+        ],
+        "footer": {
+          "show": false
+        }
+      },
+      "transformations": [
+        {
+          "id": "merge",
+          "options": {}
+        },
+        {
+          "id": "filterFieldsByName",
+          "options": {
+            "include": {
+              "names": [
+                "exported_env",
+                "queue",
+                "Value #A",
+                "Value #B",
+                "Value #C"
+              ]
+            }
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {},
+            "indexByName": {
+              "exported_env": 0,
+              "queue": 1,
+              "Value #A": 2,
+              "Value #B": 3,
+              "Value #C": 4
+            },
+            "renameByName": {
+              "exported_env": "环境",
+              "queue": "队列",
+              "Value #A": "待处理数",
+              "Value #B": "最老等待",
+              "Value #C": "最旧快照年龄"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "title": "任务终态速率 · 5分钟均值",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 0,
+        "y": 11,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "description": "按已提交终态统计；每个点为此前5分钟的平均每分钟速率。进程内观测不是持久账本。",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "suffix:次/分",
+          "noValue": "尚无终态样本",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "min": 0,
+          "custom": {
+            "drawStyle": "bars",
+            "lineInterpolation": "linear",
+            "lineWidth": 0,
+            "fillOpacity": 75,
+            "showPoints": "never",
+            "spanNulls": false,
+            "axisBorderShow": false,
+            "axisPlacement": "auto",
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "stacking": {
+              "mode": "normal",
+              "group": "terminal"
+            }
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "api-server"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "API 服务"
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "blue"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "admin"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "管理端"
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "purple"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "worker"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "后台处理"
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "green"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "scheduler"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "定时任务"
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "orange"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "agent"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Agent"
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "red"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "succeeded"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "成功终态"
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "green"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "failed"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "失败终态"
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "red"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "cancelled"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "取消终态"
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "gray"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "60 * sum by (state) (rate(task_terminal_total{job=\"application\",service=\"huahuo-server\",exported_env=~\"$env\",host=~\"$host\"}[5m]))",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "legendFormat": "{{state}}",
+          "instant": false,
+          "range": true,
+          "format": "time_series"
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "calcs": []
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 7,
+      "title": "处理尝试 · 按任务类型与结果",
+      "type": "table",
+      "gridPos": {
+        "x": 12,
+        "y": 11,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "description": "处理尝试与唯一任务终态分别展示；一次任务可经历失败重试后成功。没有序列时显示未上报。",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "noValue": "暂无数据",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "decimals": 0,
+          "custom": {
+            "align": "left",
+            "cellOptions": {
+              "type": "auto"
+            }
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "角色"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "api-server": {
+                        "text": "API 服务"
+                      },
+                      "admin": {
+                        "text": "管理端"
+                      },
+                      "worker": {
+                        "text": "后台处理"
+                      },
+                      "scheduler": {
+                        "text": "定时任务"
+                      },
+                      "agent": {
+                        "text": "Agent"
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "custom.width",
+                "value": 120
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "服务"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "huahuo-server": {
+                        "text": "Server"
+                      },
+                      "huahuo-agent": {
+                        "text": "Agent"
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "custom.width",
+                "value": 110
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "尝试结果"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "success": {
+                        "text": "成功",
+                        "color": "green"
+                      },
+                      "failure": {
+                        "text": "失败",
+                        "color": "red"
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (kind,result)(increase(task_processing_attempts_total{job=\"application\",service=\"huahuo-server\",exported_env=~\"$env\",host=~\"$host\"}[$__range]))",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "legendFormat": "",
+          "instant": true,
+          "range": false,
+          "format": "table"
+        }
+      ],
+      "options": {
+        "showHeader": true,
+        "cellHeight": "md",
+        "sortBy": [
+          {
+            "displayName": "时段尝试数",
+            "desc": true
+          }
+        ],
+        "footer": {
+          "show": false
+        }
+      },
+      "transformations": [
+        {
+          "id": "filterFieldsByName",
+          "options": {
+            "include": {
+              "names": [
+                "kind",
+                "result",
+                "Value"
+              ]
+            }
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {},
+            "indexByName": {
+              "kind": 0,
+              "result": 1,
+              "Value": 2
+            },
+            "renameByName": {
+              "kind": "任务类型",
+              "result": "尝试结果",
+              "Value": "时段尝试数"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "type": "row",
+      "title": "依赖调用 · 包含完整响应消费与业务校验",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 19,
+        "w": 24,
+        "h": 1
+      }
+    },
+    {
+      "id": 9,
+      "title": "依赖与操作 · 调用量、故障和耗时",
+      "type": "table",
+      "gridPos": {
+        "x": 0,
+        "y": 20,
+        "w": 24,
+        "h": 9
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "description": "每次客户端尝试各一次。2xx响应的业务信封失败仍为business_error；故障包含HTTP、业务、网络、超时与响应校验，分母排除主动cancelled。P95包含所有尝试的完整消费耗时。无流量或缺失数据留空；未插桩的SDK调用不能据此推断。",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "noValue": "未上报",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "decimals": 0,
+          "custom": {
+            "align": "left",
+            "cellOptions": {
+              "type": "auto"
+            }
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "角色"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "api-server": {
+                        "text": "API 服务"
+                      },
+                      "admin": {
+                        "text": "管理端"
+                      },
+                      "worker": {
+                        "text": "后台处理"
+                      },
+                      "scheduler": {
+                        "text": "定时任务"
+                      },
+                      "agent": {
+                        "text": "Agent"
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "custom.width",
+                "value": 120
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "服务"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "huahuo-server": {
+                        "text": "Server"
+                      },
+                      "huahuo-agent": {
+                        "text": "Agent"
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "custom.width",
+                "value": 110
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "故障占比 · 排除主动取消"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percent"
+              },
+              {
+                "id": "decimals",
+                "value": 2
+              },
+              {
+                "id": "noValue",
+                "value": "无有效尝试"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "尝试耗时 P95"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "s"
+              },
+              {
+                "id": "decimals",
+                "value": 3
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "依赖"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "document_parser": {
+                        "text": "文档解析"
+                      },
+                      "embedding": {
+                        "text": "向量嵌入"
+                      },
+                      "rerank": {
+                        "text": "重排"
+                      },
+                      "processing_node": {
+                        "text": "计算节点"
+                      },
+                      "other": {
+                        "text": "其他"
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (exported_env,dependency,operation)(increase(http_client_requests_total{job=\"application\",service=\"huahuo-server\",exported_env=~\"$env\",host=~\"$host\"}[$__range]))",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "legendFormat": "",
+          "instant": true,
+          "range": false,
+          "format": "table"
+        },
+        {
+          "refId": "B",
+          "expr": "100 * ((sum by (exported_env,dependency,operation)(increase(http_client_requests_total{job=\"application\",service=\"huahuo-server\",exported_env=~\"$env\",host=~\"$host\",outcome=~\"http_error|business_error|network_error|timeout|response_error\"}[$__range]))) or on (exported_env,dependency,operation) (0 * (sum by (exported_env,dependency,operation)(increase(http_client_requests_total{job=\"application\",service=\"huahuo-server\",exported_env=~\"$env\",host=~\"$host\",outcome!=\"cancelled\"}[$__range]))))) / ((sum by (exported_env,dependency,operation)(increase(http_client_requests_total{job=\"application\",service=\"huahuo-server\",exported_env=~\"$env\",host=~\"$host\",outcome!=\"cancelled\"}[$__range]))) > 0)",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "legendFormat": "",
+          "instant": true,
+          "range": false,
+          "format": "table"
+        },
+        {
+          "refId": "C",
+          "expr": "histogram_quantile(0.95, sum by (le,exported_env,dependency,operation) (increase(http_client_request_duration_seconds_bucket{job=\"application\",service=\"huahuo-server\",exported_env=~\"$env\",host=~\"$host\"}[$__range])))",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "legendFormat": "",
+          "instant": true,
+          "range": false,
+          "format": "table"
+        },
+        {
+          "refId": "D",
+          "expr": "sum by (exported_env,dependency,operation)(increase(http_client_requests_total{job=\"application\",service=\"huahuo-server\",exported_env=~\"$env\",host=~\"$host\",outcome=\"cancelled\"}[$__range]))",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "legendFormat": "",
+          "instant": true,
+          "range": false,
+          "format": "table"
+        }
+      ],
+      "options": {
+        "showHeader": true,
+        "cellHeight": "md",
+        "sortBy": [
+          {
+            "displayName": "Value",
+            "desc": true
+          }
+        ],
+        "footer": {
+          "show": false
+        }
+      },
+      "transformations": [
+        {
+          "id": "merge",
+          "options": {}
+        },
+        {
+          "id": "filterFieldsByName",
+          "options": {
+            "include": {
+              "names": [
+                "exported_env",
+                "dependency",
+                "operation",
+                "Value #A",
+                "Value #B",
+                "Value #C",
+                "Value #D"
+              ]
+            }
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {},
+            "indexByName": {
+              "exported_env": 0,
+              "dependency": 1,
+              "operation": 2,
+              "Value #A": 3,
+              "Value #B": 4,
+              "Value #C": 5,
+              "Value #D": 6
+            },
+            "renameByName": {
+              "exported_env": "环境",
+              "dependency": "依赖",
+              "operation": "操作",
+              "Value #A": "时段客户端尝试",
+              "Value #B": "故障占比 · 排除主动取消",
+              "Value #C": "尝试耗时 P95",
+              "Value #D": "主动取消"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "type": "row",
+      "title": "RAG 检索与重排（按需展开）",
+      "collapsed": true,
+      "gridPos": {
+        "x": 0,
+        "y": 29,
+        "w": 24,
+        "h": 1
+      },
+      "panels": [
+        {
+          "id": 11,
+          "title": "RAG 阶段 P95 · 所选时段",
+          "type": "bargauge",
+          "gridPos": {
+            "x": 0,
+            "y": 30,
+            "w": 10,
+            "h": 8
+          },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "description": "各阶段实际耗时分别合并直方图后估算P95，不能相加当作端到端P95。没有观测样本留空。",
+          "fieldConfig": {
+            "defaults": {
+              "unit": "s",
+              "noValue": "尚无阶段样本",
+              "color": {
+                "mode": "palette-classic"
+              },
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "expr": "histogram_quantile(0.95, sum by (le,stage) (increase(rag_stage_duration_seconds_bucket{job=\"application\",service=\"huahuo-server\",exported_env=~\"$env\",host=~\"$host\"}[$__range])))",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "legendFormat": "{{stage}}",
+              "instant": true,
+              "range": false,
+              "format": "time_series"
+            }
+          ],
+          "options": {
+            "orientation": "horizontal",
+            "displayMode": "basic",
+            "showUnfilled": false,
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "values": false,
+              "fields": ""
+            }
+          }
+        },
+        {
+          "id": 12,
+          "title": "RAG 操作 · 查询与嵌入尝试分开",
+          "type": "table",
+          "gridPos": {
+            "x": 10,
+            "y": 30,
+            "w": 14,
+            "h": 8
+          },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "description": "note_query/file_query/text_query为查询；embedding_attempt为内部嵌入尝试，两层不能相加当用户检索数。",
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "noValue": "未上报",
+              "color": {
+                "mode": "palette-classic"
+              },
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              },
+              "decimals": 0,
+              "custom": {
+                "align": "left",
+                "cellOptions": {
+                  "type": "auto"
+                }
+              }
+            },
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "角色"
+                },
+                "properties": [
+                  {
+                    "id": "mappings",
+                    "value": [
+                      {
+                        "type": "value",
+                        "options": {
+                          "api-server": {
+                            "text": "API 服务"
+                          },
+                          "admin": {
+                            "text": "管理端"
+                          },
+                          "worker": {
+                            "text": "后台处理"
+                          },
+                          "scheduler": {
+                            "text": "定时任务"
+                          },
+                          "agent": {
+                            "text": "Agent"
+                          }
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "id": "custom.width",
+                    "value": 120
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "服务"
+                },
+                "properties": [
+                  {
+                    "id": "mappings",
+                    "value": [
+                      {
+                        "type": "value",
+                        "options": {
+                          "huahuo-server": {
+                            "text": "Server"
+                          },
+                          "huahuo-agent": {
+                            "text": "Agent"
+                          }
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "id": "custom.width",
+                    "value": 110
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "操作耗时 P95"
+                },
+                "properties": [
+                  {
+                    "id": "unit",
+                    "value": "s"
+                  },
+                  {
+                    "id": "decimals",
+                    "value": 3
+                  }
+                ]
+              }
+            ]
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "expr": "sum by (operation,outcome)(increase(rag_operations_total{job=\"application\",service=\"huahuo-server\",exported_env=~\"$env\",host=~\"$host\"}[$__range]))",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "legendFormat": "",
+              "instant": true,
+              "range": false,
+              "format": "table"
+            },
+            {
+              "refId": "B",
+              "expr": "histogram_quantile(0.95, sum by (le,operation,outcome) (increase(rag_operation_duration_seconds_bucket{job=\"application\",service=\"huahuo-server\",exported_env=~\"$env\",host=~\"$host\"}[$__range])))",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "legendFormat": "",
+              "instant": true,
+              "range": false,
+              "format": "table"
+            }
+          ],
+          "options": {
+            "showHeader": true,
+            "cellHeight": "md",
+            "sortBy": [
+              {
+                "displayName": "Value",
+                "desc": true
+              }
+            ],
+            "footer": {
+              "show": false
+            }
+          },
+          "transformations": [
+            {
+              "id": "merge",
+              "options": {}
+            },
+            {
+              "id": "filterFieldsByName",
+              "options": {
+                "include": {
+                  "names": [
+                    "operation",
+                    "outcome",
+                    "Value #A",
+                    "Value #B"
+                  ]
+                }
+              }
+            },
+            {
+              "id": "organize",
+              "options": {
+                "excludeByName": {},
+                "indexByName": {
+                  "operation": 0,
+                  "outcome": 1,
+                  "Value #A": 2,
+                  "Value #B": 3
+                },
+                "renameByName": {
+                  "operation": "操作",
+                  "outcome": "结果",
+                  "Value #A": "时段操作数",
+                  "Value #B": "操作耗时 P95"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": 13,
+          "title": "重排降级 · 所选时段",
+          "type": "table",
+          "gridPos": {
+            "x": 0,
+            "y": 38,
+            "w": 24,
+            "h": 5
+          },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "description": "每次查询发生rerank降级仅记一次；没有样本不伪造零。",
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "noValue": "暂无数据",
+              "color": {
+                "mode": "palette-classic"
+              },
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              },
+              "decimals": 0,
+              "custom": {
+                "align": "left",
+                "cellOptions": {
+                  "type": "auto"
+                }
+              }
+            },
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "角色"
+                },
+                "properties": [
+                  {
+                    "id": "mappings",
+                    "value": [
+                      {
+                        "type": "value",
+                        "options": {
+                          "api-server": {
+                            "text": "API 服务"
+                          },
+                          "admin": {
+                            "text": "管理端"
+                          },
+                          "worker": {
+                            "text": "后台处理"
+                          },
+                          "scheduler": {
+                            "text": "定时任务"
+                          },
+                          "agent": {
+                            "text": "Agent"
+                          }
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "id": "custom.width",
+                    "value": 120
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "服务"
+                },
+                "properties": [
+                  {
+                    "id": "mappings",
+                    "value": [
+                      {
+                        "type": "value",
+                        "options": {
+                          "huahuo-server": {
+                            "text": "Server"
+                          },
+                          "huahuo-agent": {
+                            "text": "Agent"
+                          }
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "id": "custom.width",
+                    "value": 110
+                  }
+                ]
+              }
+            ]
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "expr": "sum by (reason)(increase(rag_fallbacks_total{job=\"application\",service=\"huahuo-server\",exported_env=~\"$env\",host=~\"$host\"}[$__range]))",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "legendFormat": "",
+              "instant": true,
+              "range": false,
+              "format": "table"
+            }
+          ],
+          "options": {
+            "showHeader": true,
+            "cellHeight": "md",
+            "sortBy": [
+              {
+                "displayName": "降级次数",
+                "desc": true
+              }
+            ],
+            "footer": {
+              "show": false
+            }
+          },
+          "transformations": [
+            {
+              "id": "filterFieldsByName",
+              "options": {
+                "include": {
+                  "names": [
+                    "reason",
+                    "Value"
+                  ]
+                }
+              }
+            },
+            {
+              "id": "organize",
+              "options": {
+                "excludeByName": {},
+                "indexByName": {
+                  "reason": 0,
+                  "Value": 1
+                },
+                "renameByName": {
+                  "reason": "降级原因",
+                  "Value": "降级次数"
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 14,
+      "type": "row",
+      "title": "状态流（按需展开）",
+      "collapsed": true,
+      "gridPos": {
+        "x": 0,
+        "y": 30,
+        "w": 24,
+        "h": 1
+      },
+      "panels": [
+        {
+          "id": 15,
+          "title": "状态流 · 语义终态与生命周期",
+          "type": "table",
+          "gridPos": {
+            "x": 0,
+            "y": 31,
+            "w": 14,
+            "h": 8
+          },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "description": "仅Server状态流：node_status/document_trial/state。HTTP200下仍可error/cancelled；不能把HTTP成功率当作业务成功率，亦不同于Agent模型输出流。",
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "noValue": "未上报",
+              "color": {
+                "mode": "palette-classic"
+              },
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              },
+              "decimals": 0,
+              "custom": {
+                "align": "left",
+                "cellOptions": {
+                  "type": "auto"
+                }
+              }
+            },
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "角色"
+                },
+                "properties": [
+                  {
+                    "id": "mappings",
+                    "value": [
+                      {
+                        "type": "value",
+                        "options": {
+                          "api-server": {
+                            "text": "API 服务"
+                          },
+                          "admin": {
+                            "text": "管理端"
+                          },
+                          "worker": {
+                            "text": "后台处理"
+                          },
+                          "scheduler": {
+                            "text": "定时任务"
+                          },
+                          "agent": {
+                            "text": "Agent"
+                          }
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "id": "custom.width",
+                    "value": 120
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "服务"
+                },
+                "properties": [
+                  {
+                    "id": "mappings",
+                    "value": [
+                      {
+                        "type": "value",
+                        "options": {
+                          "huahuo-server": {
+                            "text": "Server"
+                          },
+                          "huahuo-agent": {
+                            "text": "Agent"
+                          }
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "id": "custom.width",
+                    "value": 110
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "生命周期 P95"
+                },
+                "properties": [
+                  {
+                    "id": "unit",
+                    "value": "s"
+                  },
+                  {
+                    "id": "decimals",
+                    "value": 3
+                  }
+                ]
+              }
+            ]
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "expr": "sum by (kind,outcome)(increase(stream_sessions_total{job=\"application\",service=\"huahuo-server\",exported_env=~\"$env\",host=~\"$host\"}[$__range]))",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "legendFormat": "",
+              "instant": true,
+              "range": false,
+              "format": "table"
+            },
+            {
+              "refId": "B",
+              "expr": "histogram_quantile(0.95, sum by (le,kind,outcome) (increase(stream_duration_seconds_bucket{job=\"application\",service=\"huahuo-server\",exported_env=~\"$env\",host=~\"$host\"}[$__range])))",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "legendFormat": "",
+              "instant": true,
+              "range": false,
+              "format": "table"
+            }
+          ],
+          "options": {
+            "showHeader": true,
+            "cellHeight": "md",
+            "sortBy": [
+              {
+                "displayName": "Value",
+                "desc": true
+              }
+            ],
+            "footer": {
+              "show": false
+            }
+          },
+          "transformations": [
+            {
+              "id": "merge",
+              "options": {}
+            },
+            {
+              "id": "filterFieldsByName",
+              "options": {
+                "include": {
+                  "names": [
+                    "kind",
+                    "outcome",
+                    "Value #A",
+                    "Value #B"
+                  ]
+                }
+              }
+            },
+            {
+              "id": "organize",
+              "options": {
+                "excludeByName": {},
+                "indexByName": {
+                  "kind": 0,
+                  "outcome": 1,
+                  "Value #A": 2,
+                  "Value #B": 3
+                },
+                "renameByName": {
+                  "kind": "状态流类型",
+                  "outcome": "关闭结果",
+                  "Value #A": "已结束会话",
+                  "Value #B": "生命周期 P95"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": 16,
+          "title": "状态首事件等待 P95",
+          "type": "bargauge",
+          "gridPos": {
+            "x": 14,
+            "y": 31,
+            "w": 10,
+            "h": 8
+          },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "description": "第一条状态数据被传输层接收的等待；排除心跳，不代表客户端ACK，也不是LLM首文本。",
+          "fieldConfig": {
+            "defaults": {
+              "unit": "s",
+              "noValue": "尚无首事件样本",
+              "color": {
+                "mode": "palette-classic"
+              },
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "expr": "histogram_quantile(0.95, sum by (le,kind) (increase(stream_first_event_seconds_bucket{job=\"application\",service=\"huahuo-server\",exported_env=~\"$env\",host=~\"$host\"}[$__range])))",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "legendFormat": "{{kind}}",
+              "instant": true,
+              "range": false,
+              "format": "time_series"
+            }
+          ],
+          "options": {
+            "orientation": "horizontal",
+            "displayMode": "basic",
+            "showUnfilled": false,
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "values": false,
+              "fields": ""
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": 17,
+      "type": "row",
+      "title": "进程身份（按需展开）",
+      "collapsed": true,
+      "gridPos": {
+        "x": 0,
+        "y": 31,
+        "w": 24,
+        "h": 1
+      },
+      "panels": [
+        {
+          "id": 18,
+          "title": "Server 进程身份",
+          "type": "table",
+          "gridPos": {
+            "x": 0,
+            "y": 32,
+            "w": 24,
+            "h": 7
+          },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "description": "application_info确认上报身份，不代表依赖健康。version可能是package版本，不保证是提交SHA；当前没有蓝绿槽位标签，不据此推断蓝绿发布。",
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "noValue": "暂无数据",
+              "color": {
+                "mode": "palette-classic"
+              },
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              },
+              "decimals": 0,
+              "custom": {
+                "align": "left",
+                "cellOptions": {
+                  "type": "auto"
+                }
+              }
+            },
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "角色"
+                },
+                "properties": [
+                  {
+                    "id": "mappings",
+                    "value": [
+                      {
+                        "type": "value",
+                        "options": {
+                          "api-server": {
+                            "text": "API 服务"
+                          },
+                          "admin": {
+                            "text": "管理端"
+                          },
+                          "worker": {
+                            "text": "后台处理"
+                          },
+                          "scheduler": {
+                            "text": "定时任务"
+                          },
+                          "agent": {
+                            "text": "Agent"
+                          }
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "id": "custom.width",
+                    "value": 120
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "服务"
+                },
+                "properties": [
+                  {
+                    "id": "mappings",
+                    "value": [
+                      {
+                        "type": "value",
+                        "options": {
+                          "huahuo-server": {
+                            "text": "Server"
+                          },
+                          "huahuo-agent": {
+                            "text": "Agent"
+                          }
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "id": "custom.width",
+                    "value": 110
+                  }
+                ]
+              }
+            ]
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "expr": "application_info{job=\"application\",service=\"huahuo-server\",exported_env=~\"$env\",host=~\"$host\"}",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "legendFormat": "",
+              "instant": true,
+              "range": false,
+              "format": "table"
+            }
+          ],
+          "options": {
+            "showHeader": true,
+            "cellHeight": "md",
+            "sortBy": [
+              {
+                "displayName": "角色",
+                "desc": false
+              }
+            ],
+            "footer": {
+              "show": false
+            }
+          },
+          "transformations": [
+            {
+              "id": "filterFieldsByName",
+              "options": {
+                "include": {
+                  "names": [
+                    "exported_env",
+                    "role",
+                    "host",
+                    "instance",
+                    "version",
+                    "service_instance_id"
+                  ]
+                }
+              }
+            },
+            {
+              "id": "organize",
+              "options": {
+                "excludeByName": {},
+                "indexByName": {
+                  "exported_env": 0,
+                  "role": 1,
+                  "host": 2,
+                  "instance": 3,
+                  "version": 4,
+                  "service_instance_id": 5
+                },
+                "renameByName": {
+                  "exported_env": "环境",
+                  "role": "角色",
+                  "host": "主机",
+                  "instance": "抓取地址",
+                  "version": "上报版本",
+                  "service_instance_id": "进程实例"
+                }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "links": [
+    {
+      "title": "服务总览",
+      "type": "link",
+      "url": "/d/monitoring-overview",
+      "keepTime": true,
+      "includeVars": true
+    },
+    {
+      "title": "Server HTTP",
+      "type": "link",
+      "url": "/d/huahuo-server?var-service=huahuo-server",
+      "keepTime": true,
+      "includeVars": true
+    },
+    {
+      "title": "数据库慢查询",
+      "type": "link",
+      "url": "/d/database-slow-sql",
+      "keepTime": true,
+      "includeVars": true
+    },
+    {
+      "title": "实时容器日志 ↗",
+      "type": "link",
+      "url": "https://dozzle.chuda.cc/",
+      "targetBlank": true
+    }
+  ]
+}

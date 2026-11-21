@@ -1,0 +1,17 @@
+- targets: ["loki:3100"]
+  labels:
+    env: test
+    host: i-2zegtoygiiked53yntmj
+    service: loki
+- targets: ["alloy:12345"]
+  labels:
+    env: test
+    host: i-2zegtoygiiked53yntmj
+    service: alloy
+- targets: ["rds-slow-logs:9129"]
+  labels:
+    env: test
+    host: i-2zegtoygiiked53yntmj
+    service: rds-slow-logs
+    rds_instance: pgm-2ze7o54d25m8kn53
+    database: huahuo

@@ -1,0 +1,52 @@
+apiVersion: 1
+providers:
+  - name: huahuo-overview
+    orgId: 1
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 15
+    allowUiUpdates: false
+    folderUid: fbjpw8
+    folder: 花火AI
+    options:
+      path: /var/lib/grafana/dashboards/花火AI/总览
+  - name: huahuo-http
+    orgId: 1
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 15
+    allowUiUpdates: false
+    folderUid: huahuo-http
+    folder: HTTP 排查
+    options:
+      path: /var/lib/grafana/dashboards/花火AI/HTTP 排查
+  - name: huahuo-agent
+    orgId: 1
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 15
+    allowUiUpdates: false
+    folderUid: huahuo-agent
+    folder: Agent
+    options:
+      path: /var/lib/grafana/dashboards/花火AI/Agent
+  - name: huahuo-server
+    orgId: 1
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 15
+    allowUiUpdates: false
+    folderUid: huahuo-server
+    folder: Server
+    options:
+      path: /var/lib/grafana/dashboards/花火AI/Server
+  - name: monitoring-platform
+    orgId: 1
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 15
+    allowUiUpdates: false
+    folderUid: bg4hozr6wxbeoa
+    folder: 平台运维
+    options:
+      path: /var/lib/grafana/dashboards/平台运维
