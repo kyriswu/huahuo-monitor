@@ -14,7 +14,7 @@ parameters=$(jq -nc --arg sha "$sha" '{sha: $sha}')
 client_token="monitor-${GITHUB_RUN_ID:?}-${GITHUB_RUN_ATTEMPT:?}"
 invoke_id=$(aliyun ecs InvokeCommand --region "$region" --RegionId "$region" \
     --InstanceId.1 "$instance" --CommandId "$command" --Parameters "$parameters" \
-    --ClientToken "$client_token" --RepeatMode Once | jq -er '.InvokeId')
+    --Username huahuo-monitor --ClientToken "$client_token" --RepeatMode Once | jq -er '.InvokeId')
 [[ "$invoke_id" =~ ^t-[a-zA-Z0-9]+$ ]] || { echo "::error::Invalid Cloud Assistant invocation ID"; exit 1; }
 echo "Cloud Assistant invocation: $invoke_id"
 

@@ -57,9 +57,26 @@ cd "$workdir"
 "${kubectl_test[@]}" -n ns-monitoring get secret grafana-admin rds-api -o name >&2
 "${kubectl_test[@]}" -n ns-monitoring get configmap rds-slow-logs-settings -o name >&2
 
-# Server's existing ingress policy already isolates these four roles.
-kubectl kustomize . > rendered.yaml
+# The test namespace, storage, and ClusterRoles are provisioned once by an administrator.
+# The deployment account reconciles only namespaced resources.
+renderer=${HUAHUO_MONITOR_TEST_RENDERER:-k8s/overlays/test/render.sh}
+if [[ $cloud_assistant == true ]]; then
+    : "${HUAHUO_MONITOR_TEST_RENDERER:?Set the reviewed test renderer installed on the deployment host}"
+fi
+bash "$renderer" > rendered-all.yaml
+awk '
+    function emit() {
+        if (document != "" && kind !~ /^(Namespace|ClusterRole|StorageClass|PersistentVolume)$/) {
+            printf "---\n%s", document
+        }
+    }
+    /^---$/ { emit(); document = ""; kind = ""; next }
+    /^kind: / { kind = $2 }
+    { document = document $0 "\n" }
+    END { emit() }
+' rendered-all.yaml > rendered.yaml
 files=(-f rendered.yaml -f k8s/application-access.yaml)
+# Server's existing ingress policy already isolates these four roles.
 policy=$("${kubectl_test[@]}" -n ns-applications get networkpolicy huahuo-server-ingress --ignore-not-found -o json)
 if [[ -n "$policy" ]]; then
     if jq -e '.spec.podSelector == {

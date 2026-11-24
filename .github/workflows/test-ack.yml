@@ -23,13 +23,13 @@ jobs:
           version: v1.35.5
       - name: Check Kubernetes schemas
         run: |
-          kubectl kustomize . > "$RUNNER_TEMP/monitoring.yaml"
+          bash k8s/overlays/test/render.sh > "$RUNNER_TEMP/monitoring.yaml"
           curl -fsSL --retry 3 \
             https://github.com/yannh/kubeconform/releases/download/v0.8.0/kubeconform-linux-amd64.tar.gz \
             | tar -xz -C "$RUNNER_TEMP" kubeconform
           "$RUNNER_TEMP/kubeconform" -strict -summary -kubernetes-version 1.35.5 \
             "$RUNNER_TEMP/monitoring.yaml" k8s/application-access.yaml \
-            k8s/server-metrics-policy.yaml k8s/ingress.yaml
+            k8s/server-metrics-policy.yaml k8s/ingress.yaml k8s/overlays/test/deployer-rbac.yaml
       - name: Check service configurations
         run: |
           docker run --rm --entrypoint /bin/promtool \
@@ -45,19 +45,13 @@ jobs:
           python3 -m unittest discover -s rds-slow-logs
           bash -n k8s/deploy-test-from-ecs.sh
           bash -n k8s/invoke-test-deploy.sh
-      - name: Report pending test deployment setup
-        if: github.event_name == 'push' && vars.TEST_ACK_MONITOR_DEPLOY_COMMAND_ID == ''
-        run: echo "::notice::Test deployment is pending the monitor Cloud Assistant command ID."
 
   deploy:
     name: Deploy to test ACK
     needs: validate
     if: >-
       github.repository == 'kyriswu/huahuo-monitor' &&
-      github.ref == 'refs/heads/main' &&
-      (github.event_name == 'workflow_dispatch' ||
-       vars.TEST_ACK_MONITOR_DEPLOY_COMMAND_ID != '')
-    environment: test
+      github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 17
     concurrency:
@@ -70,14 +64,11 @@ jobs:
       # Use the shared test ACK release host and account-level identity provider.
       TEST_ACK_MONITOR_REGION_ID: cn-beijing
       TEST_ACK_MONITOR_ECS_INSTANCE_ID: i-2zeaydxol26pp3dxg1ak
-      TEST_ACK_MONITOR_DEPLOY_COMMAND_ID: ${{ vars.TEST_ACK_MONITOR_DEPLOY_COMMAND_ID }}
+      TEST_ACK_MONITOR_DEPLOY_COMMAND_ID: c-bj074261hm62zuo
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - name: Check test deployment settings
-        run: |
-          : "${TEST_ACK_MONITOR_DEPLOY_COMMAND_ID:?Missing fixed test deployment command ID}"
       - uses: aliyun/setup-aliyun-cli-action@09a5f86915bb556e27bf050e9a5e339aeb073df5 # v1
         with:
           version: '3.5.3'

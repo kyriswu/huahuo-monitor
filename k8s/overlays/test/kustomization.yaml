@@ -1,0 +1,44 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - monitoring-base.yaml
+  - local-storage.yaml
+patches:
+  - path: pvc-bindings.yaml
+  - target:
+      kind: Deployment
+    patch: |-
+      - op: add
+        path: /spec/template/spec/imagePullSecrets
+        value:
+          - name: acr-credential-secret-aggregation
+  - target:
+      kind: Deployment
+      name: prometheus
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/args
+        value:
+          - --config.file=/etc/prometheus-config/prometheus.yml
+          - --storage.tsdb.path=/prometheus
+          - --storage.tsdb.retention.time=48h
+          - --storage.tsdb.retention.size=3GB
+images:
+  - name: prom/prometheus
+    newName: huahuoai-docker-hub-registry-vpc.cn-beijing.cr.aliyuncs.com/huahuo/huahuo-monitor
+    digest: sha256:2e2c559c3067d1cf55e1ff999ffea09f75e5b8d30cf7c06ac424766370280103
+  - name: grafana/grafana
+    newName: huahuoai-docker-hub-registry-vpc.cn-beijing.cr.aliyuncs.com/huahuo/huahuo-monitor
+    digest: sha256:75a4010c0e8b5261654804d950f961f0d9faaeb40ce80de8ad270e0f357d60c5
+  - name: grafana/loki
+    newName: huahuoai-docker-hub-registry-vpc.cn-beijing.cr.aliyuncs.com/huahuo/huahuo-monitor
+    digest: sha256:687e697dd90ceb962b2801bacdddfec613fdda15a7fe9c79552efb13548d3590
+  - name: grafana/alloy
+    newName: huahuoai-docker-hub-registry-vpc.cn-beijing.cr.aliyuncs.com/huahuo/huahuo-monitor
+    digest: sha256:e65fafd31623e60dc02b91919db0da84ecd5ad3fc1b3d03ecb0a832434590bcc
+  - name: python
+    newName: huahuoai-docker-hub-registry-vpc.cn-beijing.cr.aliyuncs.com/huahuo/huahuo-monitor
+    digest: sha256:41a9297868a1458dc75dfec0de1f5f94465148cf286b3d35737406ad4ec97d84
+  - name: registry.k8s.io/kube-state-metrics/kube-state-metrics
+    newName: huahuoai-docker-hub-registry-vpc.cn-beijing.cr.aliyuncs.com/huahuo/huahuo-monitor
+    digest: sha256:6a8ccb592fda5f0cd0e73226fe8ba9be92836db26517b54c5b584b57bf9ed034

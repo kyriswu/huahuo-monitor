@@ -42,21 +42,17 @@ kubectl --context "$TEST_CONTEXT" -n ns-monitoring create configmap rds-slow-log
 
 ## GitHub Actions 发布
 
-[Monitoring test ACK](../.github/workflows/test-ack.yml) 在 `main` 推送时检查 Kubernetes 清单、Prometheus/Loki/Alloy 配置和 RDS 采集器。校验成功且已设置固定命令 ID 时，工作流使用 GitHub OIDC 临时身份串行发布到 `test` 环境。也可在 Actions 中从 `main` 重新触发。
+[Monitoring test ACK](../.github/workflows/test-ack.yml) 在 `main` 推送时检查 Kubernetes 清单、Prometheus/Loki/Alloy 配置和 RDS 采集器。校验成功后，工作流使用 GitHub OIDC 临时身份串行发布到 test ACK。也可在 Actions 中从 `main` 重新触发。
 
 workflow 使用北京 Node01（`i-2zeaydxol26pp3dxg1ak`）以及账号 `1472289886746775` 共享的 OIDC Provider `github-actions` 和发布角色 `github-actions-release`。 [Server test ACK 发布配置](https://github.com/kyriswu/huahuo-server/pull/57/files)
 
-| GitHub 仓库变量 | 用途 |
-| --- | --- |
-| `TEST_ACK_MONITOR_DEPLOY_COMMAND_ID` | Node01 上监控专用固定云助手命令 ID |
+Node01 上的固定云助手命令为 `c-bj074261hm62zuo`。本仓库的 OIDC subject `repo:kyriswu@5120703/huahuo-monitor@1466054194:ref:refs/heads/main` 允许 `main` 使用共享角色调用该命令。调用使用宿主用户 `huahuo-monitor`。 [GitHub OIDC subject 格式](https://docs.github.com/en/actions/reference/security/oidc#immutable-subject-claims)
 
-在 GitHub 的 `test` 环境允许 `main` 发布，按项目约定保持无人工审批。共享角色只信任指定仓库的 `test` 环境。本仓库的 OIDC subject 为 `repo:kyriswu@5120703/huahuo-monitor@1466054194:environment:test`。角色权限限于已配置的测试 ECS 和固定发布命令的 `InvokeCommand`、`DescribeInvocationResults`。 [GitHub OIDC subject 格式](https://docs.github.com/en/actions/reference/security/oidc#immutable-subject-claims)
-
-在能访问 test ACK 的 ECS 上，通过已具备 test ACK kubeconfig 的部署用户执行 `bash /path/to/deploy-test-from-ecs.sh --cloud-assistant '{{sha}}'`。固定云助手命令只接收完整提交参数 `sha`，可以复用 Server 发布机的内网连接。部署用户设置 `HUAHUO_TEST_ACK_CONTEXT`，宿主需要 Git、kubectl 和 jq，命令超时可设 600 秒。部署账号需要在监控范围内执行服务端 apply、观察 Deployment、读取必要的前置对象，并有权创建本清单声明的 RBAC 绑定。
+Node01 在 `/etc/huahuo-monitor` 保存经过核对的 `deploy-test.sh`、`render-test.sh` 和仅供部署用户读取的 kubeconfig。固定命令只接收完整提交 `sha`，调用已安装的脚本和 `huahuo-monitor-test` context。宿主使用 Git、kubectl 和 jq，命令超时为 600 秒。集群管理员首次应用命名空间、ClusterRole、跨命名空间绑定、本地 PV 和部署身份。详情见[测试存储配置](overlays/test/README.md)和[部署权限](overlays/test/deployer-rbac.yaml)。
 
 云助手只接收与提交 SHA 对应的 JSON 回执。部署日志保存在 ECS 上，可通过 `HUAHUO_MONITOR_DEPLOY_LOG_DIR` 指向已有的私有日志目录，默认写入 `${TMPDIR:-/tmp}`。在已有 test 权限的终端直接运行脚本时，省略 `--cloud-assistant` 即可查看正常诊断输出。
 
-脚本只发布仍为 `main` 最新版本的已验证 SHA，先做服务端 dry-run，再应用监控清单和业务命名空间内的只读 RoleBinding。发现 Server 使用项目既有的默认隔离规则时，单独放行来自监控 Prometheus 的 9464/TCP 指标流量。
+脚本只发布仍为 `main` 最新版本的已验证 SHA，先做服务端 dry-run，再应用监控命名空间的工作负载和已授权的 RoleBinding。测试清单使用现有 ACR 内网仓库的 ARM64 镜像 digest 和 Node01 的五个本地 PV。Server 使用项目既有的默认隔离规则时，单独放行来自监控 Prometheus 的 9464/TCP 指标流量。
 
 ## 验收
 

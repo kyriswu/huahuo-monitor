@@ -1,0 +1,53 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: prometheus-data
+  namespace: ns-monitoring
+spec:
+  storageClassName: huahuo-monitor-test-local
+  volumeName: huahuo-monitor-test-prometheus
+  resources:
+    requests:
+      storage: 4Gi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: grafana-data
+  namespace: ns-monitoring
+spec:
+  storageClassName: huahuo-monitor-test-local
+  volumeName: huahuo-monitor-test-grafana
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: loki-data
+  namespace: ns-monitoring
+spec:
+  storageClassName: huahuo-monitor-test-local
+  volumeName: huahuo-monitor-test-loki
+  resources:
+    requests:
+      storage: 5Gi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: alloy-data
+  namespace: ns-monitoring
+spec:
+  storageClassName: huahuo-monitor-test-local
+  volumeName: huahuo-monitor-test-alloy
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: rds-slow-logs-data
+  namespace: ns-monitoring
+spec:
+  storageClassName: huahuo-monitor-test-local
+  volumeName: huahuo-monitor-test-rds-slow-logs
