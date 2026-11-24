@@ -142,14 +142,14 @@ def dashboard_links(uid):
     elif uid in ('server-workloads', 'database-slow-sql'):
         items = [home, server, ('Server HTTP', '/d/huahuo-server?var-service=huahuo-server'),
                  ('数据库慢查询', '/d/database-slow-sql')]
-    elif uid == 'prometheus-health':
+    elif uid in ('prometheus-health', 'kubernetes-status'):
         items = [home, platform]
     else:
         items = [http, agent, server, platform]
     result = [{'title': title, 'type': 'link', 'url': url, 'keepTime': True, 'includeVars': True}
               for title, url in items if url.split('?')[0] != '/d/' + uid]
     if uid != 'monitoring-overview':
-        result.append({'title': '实时容器日志 ↗', 'type': 'link', 'url': 'https://dozzle.chuda.cc/', 'targetBlank': True})
+        result.append({'title': 'Grafana Explore', 'type': 'link', 'url': '/explore', 'targetBlank': True})
     return result
 
 
@@ -165,7 +165,10 @@ def save(uid, title, panels, folder, vars=None, description=''):
                  'links': dashboard_links(uid)}
     section = {'monitoring-overview': '总览', 'agent-runtime': 'Agent',
                'server-workloads': 'Server', 'database-slow-sql': 'Server'}.get(uid, 'HTTP 排查')
-    dest = ROOT / ('平台运维' if folder == 'platform' else '花火AI/' + section)
+    if folder == 'kubernetes':
+        dest = ROOT.parent / 'kubernetes'
+    else:
+        dest = ROOT / ('平台运维' if folder == 'platform' else '花火AI/' + section)
     dest.mkdir(parents=True, exist_ok=True)
     target = dest / (uid + '.json')
     for previous in ROOT.rglob(uid + '.json'):
@@ -599,6 +602,9 @@ if LOGS_ENABLED:
                           '当前只采集本机四角色的业务容器；用于观察日志量随接入范围的变化。', '日志字节/秒'))
 save('prometheus-health', '采集状态', platform, 'platform', description='用于检查监控采集链路和 Prometheus 自身资源。')
 
+from kubernetes_dashboard import build_kubernetes_dashboard
+build_kubernetes_dashboard(save, panel, table, field, semantic, variable, LOKI)
+
 if RDS_LOGS_ENABLED:
     from database_dashboard import build_database_dashboard
     build_database_dashboard(save, panel, field, DS, LOKI, log_limit=LOG_LIMIT)
@@ -608,5 +614,5 @@ from server_dashboard import build_server_dashboard
 build_agent_dashboard(save, panel, table, field, query, DS, LOKI, variable)
 build_server_dashboard(save, panel, table, field, query, DS, LOKI, variable)
 
-print('Built 服务总览、HTTP 排查、Agent 运行与模型、Server 任务与依赖、平台采集'
+print('Built 服务总览、HTTP 排查、Agent 运行与模型、Server 任务与依赖、平台采集、Kubernetes 工作负载'
       + ('、数据库慢查询.' if RDS_LOGS_ENABLED else '.'))

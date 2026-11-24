@@ -1,0 +1,60 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: ns-monitoring
+resources:
+  - k8s/namespace.yaml
+  - k8s/prometheus.yaml
+  - k8s/grafana.yaml
+  - k8s/loki.yaml
+  - k8s/alloy.yaml
+  - k8s/kube-state-metrics.yaml
+  - k8s/rds-slow-logs.yaml
+  - k8s/rbac.yaml
+  - k8s/loki-ingress-policy.yaml
+configMapGenerator:
+  - name: prometheus-config
+    files:
+      - prometheus.yml=k8s/prometheus.yml
+  - name: prometheus-targets
+    files:
+      - targets/hosts.yml
+      - targets/nginx.yml
+  - name: grafana-datasources
+    files:
+      - grafana/provisioning/datasources/prometheus.yml
+      - grafana/provisioning/datasources/loki.yml
+  - name: grafana-providers
+    files:
+      - grafana/provisioning/dashboards/monitoring.yml
+      - k8s/dashboard-provider.yml
+  - name: grafana-dashboards-overview
+    files:
+      - grafana/dashboards/花火AI/总览/monitoring-overview.json
+  - name: grafana-dashboards-http
+    files:
+      - grafana/dashboards/花火AI/HTTP 排查/http-errors.json
+      - grafana/dashboards/花火AI/HTTP 排查/huahuo-server.json
+      - grafana/dashboards/花火AI/HTTP 排查/http-request-details.json
+      - grafana/dashboards/花火AI/HTTP 排查/slow-requests.json
+  - name: grafana-dashboards-agent
+    files:
+      - grafana/dashboards/花火AI/Agent/agent-runtime.json
+  - name: grafana-dashboards-server
+    files:
+      - grafana/dashboards/花火AI/Server/database-slow-sql.json
+      - grafana/dashboards/花火AI/Server/server-workloads.json
+  - name: grafana-dashboards-platform
+    files:
+      - grafana/dashboards/平台运维/prometheus-health.json
+  - name: grafana-dashboards-kubernetes
+    files:
+      - grafana/kubernetes/kubernetes-status.json
+  - name: loki-config
+    files:
+      - loki/loki.yml
+  - name: alloy-config
+    files:
+      - config.alloy=k8s/config.alloy
+  - name: rds-slow-logs-code
+    files:
+      - rds-slow-logs/collector.py

@@ -1,0 +1,94 @@
+logging {
+	level = "warn"
+}
+
+discovery.kubernetes "applications" {
+	role = "pod"
+
+	namespaces {
+		names = ["ns-applications"]
+	}
+
+	selectors {
+		role  = "pod"
+		label = "app.kubernetes.io/name in (huahuo-server,huahuo-agent)"
+	}
+}
+
+discovery.relabel "applications" {
+	targets = discovery.kubernetes.applications.targets
+
+	rule {
+		source_labels = ["__meta_kubernetes_pod_phase", "__meta_kubernetes_pod_container_init"]
+		regex         = "Running;false"
+		action        = "keep"
+	}
+
+	rule {
+		source_labels = ["__meta_kubernetes_pod_label_app_kubernetes_io_name", "__meta_kubernetes_pod_container_name"]
+		regex         = "huahuo-server;(api|api-server|admin|worker|scheduler)|huahuo-agent;agent"
+		action        = "keep"
+	}
+
+	rule {
+		source_labels = ["__meta_kubernetes_pod_label_app_kubernetes_io_name"]
+		target_label  = "service"
+	}
+
+	rule {
+		source_labels = ["__meta_kubernetes_pod_container_name"]
+		target_label  = "role"
+	}
+
+	rule {
+		source_labels = ["role"]
+		regex         = "api"
+		replacement   = "api-server"
+		target_label  = "role"
+	}
+
+	rule {
+		source_labels = ["__meta_kubernetes_pod_node_name"]
+		target_label  = "host"
+	}
+
+	rule {
+		source_labels = ["__meta_kubernetes_pod_name", "__meta_kubernetes_pod_container_name"]
+		separator     = "/"
+		target_label  = "container_name"
+	}
+
+	rule {
+		target_label = "env"
+		replacement  = "test"
+	}
+
+	// Collapse duplicate port targets before tailing the container.
+	rule {
+		action = "labelkeep"
+		regex  = "__meta_kubernetes_(namespace|pod_(uid|name|container_name))|service|role|host|container_name|env"
+	}
+}
+
+// Preserve the original JSON log line for the existing Grafana queries.
+loki.source.kubernetes "applications" {
+	targets    = discovery.relabel.applications.output
+	forward_to = [loki.write.local.receiver]
+}
+
+loki.write "local" {
+	endpoint {
+		url                 = "http://loki:3100/loki/api/v1/push"
+		batch_wait          = "1s"
+		batch_size          = "256KiB"
+		min_backoff_period  = "500ms"
+		max_backoff_period  = "30s"
+		max_backoff_retries = 10
+	}
+}
+
+loki.source.kubernetes_events "workloads" {
+	namespaces = ["ns-monitoring", "ns-applications"]
+	job_name   = "kubernetes-events"
+	forward_to = [loki.write.local.receiver]
+}

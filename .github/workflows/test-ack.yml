@@ -1,0 +1,96 @@
+name: Monitoring test ACK
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Validate monitoring stack
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: azure/setup-kubectl@776406bce94f63e41d621b960d78ee25c8b76ede # v4.0.1
+        with:
+          version: v1.35.5
+      - name: Check Kubernetes schemas
+        run: |
+          kubectl kustomize . > "$RUNNER_TEMP/monitoring.yaml"
+          curl -fsSL --retry 3 \
+            https://github.com/yannh/kubeconform/releases/download/v0.8.0/kubeconform-linux-amd64.tar.gz \
+            | tar -xz -C "$RUNNER_TEMP" kubeconform
+          "$RUNNER_TEMP/kubeconform" -strict -summary -kubernetes-version 1.35.5 \
+            "$RUNNER_TEMP/monitoring.yaml" k8s/application-access.yaml \
+            k8s/server-metrics-policy.yaml k8s/ingress.yaml
+      - name: Check service configurations
+        run: |
+          docker run --rm --entrypoint /bin/promtool \
+            -v "$PWD/k8s/prometheus.yml:/etc/prometheus-config/prometheus.yml:ro" \
+            -v "$PWD/targets:/etc/prometheus-targets:ro" \
+            prom/prometheus:v3.16.0 check config /etc/prometheus-config/prometheus.yml
+          docker run --rm -v "$PWD/loki/loki.yml:/etc/loki/loki.yml:ro" \
+            grafana/loki:3.7.10 -config.file=/etc/loki/loki.yml -verify-config
+          docker run --rm -v "$PWD/k8s/config.alloy:/etc/alloy/config.alloy:ro" \
+            grafana/alloy:v1.22.0 validate /etc/alloy/config.alloy
+      - name: Test RDS collector and check deployment scripts
+        run: |
+          python3 -m unittest discover -s rds-slow-logs
+          bash -n k8s/deploy-test-from-ecs.sh
+          bash -n k8s/invoke-test-deploy.sh
+      - name: Report pending test deployment setup
+        if: github.event_name == 'push' && vars.TEST_ACK_MONITOR_DEPLOY_COMMAND_ID == ''
+        run: echo "::notice::Test deployment is pending the fixed Cloud Assistant command configuration."
+
+  deploy:
+    name: Deploy to test ACK
+    needs: validate
+    if: >-
+      github.repository == 'kyriswu/huahuo-monitor' &&
+      github.ref == 'refs/heads/main' &&
+      (github.event_name == 'workflow_dispatch' || vars.TEST_ACK_MONITOR_DEPLOY_COMMAND_ID != '')
+    environment: test
+    runs-on: ubuntu-latest
+    timeout-minutes: 17
+    concurrency:
+      group: huahuo-monitor-test-ack
+      cancel-in-progress: false
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      TEST_ACK_MONITOR_REGION_ID: ${{ vars.TEST_ACK_MONITOR_REGION_ID }}
+      TEST_ACK_MONITOR_ECS_INSTANCE_ID: ${{ vars.TEST_ACK_MONITOR_ECS_INSTANCE_ID }}
+      TEST_ACK_MONITOR_DEPLOY_COMMAND_ID: ${{ vars.TEST_ACK_MONITOR_DEPLOY_COMMAND_ID }}
+      TEST_ACK_MONITOR_OIDC_PROVIDER_ARN: ${{ vars.TEST_ACK_MONITOR_OIDC_PROVIDER_ARN }}
+      TEST_ACK_MONITOR_ROLE_ARN: ${{ vars.TEST_ACK_MONITOR_ROLE_ARN }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Check test deployment settings
+        run: |
+          : "${TEST_ACK_MONITOR_ECS_INSTANCE_ID:?Missing test deployment ECS instance ID}"
+          : "${TEST_ACK_MONITOR_DEPLOY_COMMAND_ID:?Missing fixed test deployment command ID}"
+          : "${TEST_ACK_MONITOR_OIDC_PROVIDER_ARN:?Missing test OIDC provider ARN}"
+          : "${TEST_ACK_MONITOR_ROLE_ARN:?Missing test deployment RAM role ARN}"
+      - uses: aliyun/setup-aliyun-cli-action@09a5f86915bb556e27bf050e9a5e339aeb073df5 # v1
+        with:
+          version: '3.5.3'
+      - name: Obtain temporary test deployment credentials
+        uses: aliyun/configure-aliyun-credentials-action@1e5248c8d5d93a8781ac344a68e19a43341e79e6 # v1.1.0
+        with:
+          oidc-provider-arn: ${{ env.TEST_ACK_MONITOR_OIDC_PROVIDER_ARN }}
+          role-to-assume: ${{ env.TEST_ACK_MONITOR_ROLE_ARN }}
+          audience: sts.aliyuncs.com
+          role-session-expiration: 1800
+          role-session-name: gha-monitor-${{ github.run_id }}-${{ github.run_attempt }}
+      - name: Invoke the fixed test deployment command
+        run: bash k8s/invoke-test-deploy.sh

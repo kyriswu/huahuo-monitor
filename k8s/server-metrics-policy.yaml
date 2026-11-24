@@ -1,0 +1,26 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: huahuo-monitor-scrape
+  namespace: ns-applications
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: huahuo-server
+    matchExpressions:
+      - key: app.kubernetes.io/component
+        operator: In
+        values: [api, admin, worker, scheduler]
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ns-monitoring
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: prometheus
+              huahuo.io/metrics-trusted: "true"
+      ports:
+        - port: 9464
+          protocol: TCP

@@ -4,6 +4,8 @@
 
 **迁移机器请先看 [MIGRATION.md](MIGRATION.md)**：代码由 Git 分发；账号凭据、证书和 Docker 卷通过独立的本地备份迁移。克隆仓库本身不会带回历史指标、日志、用户或告警配置。
 
+**测试 Kubernetes 集群**见 [Kubernetes 部署与 GitHub Actions](k8s/README.md)。每个监控组件各运行一个 Pod，Grafana 提供 Kubernetes 工作负载看板。测试集群发布从 `main` 走 workflow。
+
 下面记录的是原中心机配置，迁移时按迁移说明更新网络、节点地址与 DNS。
 
 中心私网 IP：172.18.102.96；主机 i-2zegtoygiiked53yntmj；环境 test。

@@ -1203,9 +1203,9 @@
       "includeVars": true
     },
     {
-      "title": "实时容器日志 ↗",
+      "title": "Grafana Explore",
       "type": "link",
-      "url": "https://dozzle.chuda.cc/",
+      "url": "/explore",
       "targetBlank": true
     }
   ]
