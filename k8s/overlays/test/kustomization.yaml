@@ -21,7 +21,7 @@ patches:
         value:
           - --config.file=/etc/prometheus-config/prometheus.yml
           - --storage.tsdb.path=/prometheus
-          - --storage.tsdb.retention.time=48h
+          - --storage.tsdb.retention.time=30d
           - --storage.tsdb.retention.size=3GB
 images:
   - name: prom/prometheus

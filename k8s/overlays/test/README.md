@@ -2,7 +2,7 @@
 
 测试 ACK 的五个状态卷复用北京 Node01 上已挂载到 `/var/lib/container` 的 ext4 磁盘。Node01 的 `kubernetes.io/hostname` 为 `cn-beijing.172.16.71.173`，对应 ECS `i-2zeaydxol26pp3dxg1ak`。各 PV 通过节点亲和性和预留 PVC 固定到相应目录。无状态的 kube-state-metrics 仍由调度器选择节点。
 
-StorageClass `huahuo-monitor-test-local` 使用 `kubernetes.io/no-provisioner`、`WaitForFirstConsumer` 和 `Retain`。五个卷共声明 12 GiB，Prometheus 4 GiB，Loki 5 GiB，其余各 1 GiB。test 的指标和 Loki 日志保留 48 小时，Prometheus TSDB 另设 3 GB 保留上限。卷目录共享同一文件系统，实际用量以磁盘监控为准。迁移或重装节点前备份数据，Node01 不可用时需恢复目录后再调度依赖这些卷的 Pod。 [Kubernetes 本地卷](https://kubernetes.io/docs/concepts/storage/volumes/#local)
+StorageClass `huahuo-monitor-test-local` 使用 `kubernetes.io/no-provisioner`、`WaitForFirstConsumer` 和 `Retain`。五个卷共声明 12 GiB，Prometheus 4 GiB，Loki 5 GiB，其余各 1 GiB。test 的指标和 Loki 日志保留 30 天，Prometheus TSDB 另设 3 GB 保留上限。卷目录共享同一文件系统，实际用量以磁盘监控为准。迁移或重装节点前备份数据，Node01 不可用时需恢复目录后再调度依赖这些卷的 Pod。 [Kubernetes 本地卷](https://kubernetes.io/docs/concepts/storage/volumes/#local)
 
 ## 首次准备磁盘目录
 
