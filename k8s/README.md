@@ -49,7 +49,7 @@ workflow 使用北京 Node01（`i-2zeaydxol26pp3dxg1ak`）和测试账号共享�
 | GitHub 仓库变量 | 用途 |
 | --- | --- |
 | `TEST_ACK_MONITOR_DEPLOY_COMMAND_ID` | Node01 上监控专用固定云助手命令 ID |
-| `TEST_ACK_MONITOR_ROLE_ARN` | 测试发布 RAM 角色 ARN |
+| `TEST_ACK_MONITOR_ROLE_ARN` | 阿里云账号 `1472289886746775` 的测试发布 RAM 角色 ARN |
 
 在 GitHub 的 `test` 环境允许 `main` 发布，按项目约定保持无人工审批。本仓库的默认 GitHub OIDC subject 为 `repo:kyriswu@5120703/huahuo-monitor@1466054194:environment:test`。RAM 信任策略匹配该 subject，受众为 `sts.aliyuncs.com`，操作范围限定为目标 ECS 和监控固定命令的 `InvokeCommand`、`DescribeInvocationResults`。 [GitHub OIDC subject 格式](https://docs.github.com/en/actions/reference/security/oidc#immutable-subject-claims)
 

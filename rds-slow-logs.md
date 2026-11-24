@@ -4,7 +4,7 @@
 
 ## 接入范围与查看方式
 
-- 当前只接入北京地域测试实例 `pgm-2ze7o54d25m8kn53`（pgsql-huahuo-test）的 `huahuo` 数据库，环境 `test`，未接入其他 RDS 实例。
+- 采集目标由 `RDS_REGION_ID`、`RDS_INSTANCE_ID`、`RDS_DATABASE` 和 `RDS_ENV` 配置。测试部署使用已核验的测试实例。
 - 数据库已有 `log_min_duration_statement=1000`，记录耗时达到 1 秒的 SQL。本次没有修改该参数、安装数据库扩展或修改 agent/server 代码与业务发布配置。
 - 链路：RDS `DescribeSlowLogRecords` → 专用采集器 → Loki → Grafana。每 60 秒同步，RDS 自身也有分钟级延迟。
 - 看板中的 RDS 实例和数据库选项来自所选环境、时段内的 Loki 日志。数据库列表会随实例选择更新。

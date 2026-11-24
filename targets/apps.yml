@@ -3,34 +3,34 @@
   labels:
     project: "huahuo"
     env: "test"
-    host: "i-2zegtoygiiked53yntmj"
+    host: "monitor-center"
     service: "huahuo-server"
     role: "api-server"
 - targets: ["admin:9464"]
   labels:
     project: "huahuo"
     env: "test"
-    host: "i-2zegtoygiiked53yntmj"
+    host: "monitor-center"
     service: "huahuo-server"
     role: "admin"
 - targets: ["worker:9464"]
   labels:
     project: "huahuo"
     env: "test"
-    host: "i-2zegtoygiiked53yntmj"
+    host: "monitor-center"
     service: "huahuo-server"
     role: "worker"
 - targets: ["scheduler:9464"]
   labels:
     project: "huahuo"
     env: "test"
-    host: "i-2zegtoygiiked53yntmj"
+    host: "monitor-center"
     service: "huahuo-server"
     role: "scheduler"
 - targets: ["agent:9464"]
   labels:
     project: "huahuo"
     env: "test"
-    host: "i-2zegtoygiiked53yntmj"
+    host: "monitor-center"
     service: "huahuo-agent"
     role: "agent"

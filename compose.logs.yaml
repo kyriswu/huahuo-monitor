@@ -43,7 +43,7 @@ services:
       PYTHONDONTWRITEBYTECODE: "1"
       PYTHONUNBUFFERED: "1"
       RDS_REGION_ID: ${RDS_REGION_ID:-cn-beijing}
-      RDS_INSTANCE_ID: ${RDS_INSTANCE_ID:-pgm-2ze7o54d25m8kn53}
+      RDS_INSTANCE_ID: ${RDS_INSTANCE_ID:?Set the validated RDS instance ID}
       RDS_DATABASE: ${RDS_DATABASE:-huahuo}
       RDS_ENV: ${RDS_ENV:-test}
       LOKI_PUSH_URL: http://loki:3100/loki/api/v1/push

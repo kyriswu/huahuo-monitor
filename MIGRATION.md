@@ -109,4 +109,4 @@ http_requests_total{job="application"}
 
 Loki 查询 `{service=~"huahuo-server|huahuo-agent"} |= "http.server.completed"`，从请求表点击 traceId 确认原始日志；检查慢 SQL 采集状态、告警规则和通知渠道（原中心此前未配置告警规则）。Dozzle 打开本机及每个远端节点的一条容器日志。
 
-确认新中心能持续收到新数据后再退役旧机器。仓库保留的 `node-inventory.md` 是旧机器历史核对记录，当前架构以 README、本迁移说明和实际 Compose 为准。
+确认新中心能持续收到新数据后再退役旧机器。节点地址和标签以目标环境的实际配置为准。

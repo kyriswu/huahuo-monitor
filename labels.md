@@ -6,7 +6,7 @@
 | --- | --- |
 | project | 运维项目标识 huahuo |
 | env | 环境：test；production 规范化为 prod，development 保持原值 |
-| host | 稳定主机名称 i-2zegtoygiiked53yntmj |
+| host | 稳定主机名称 monitor-center |
 | service | huahuo-server / huahuo-agent |
 | role | api-server / admin / worker / scheduler / agent |
 | instance | 实际抓取地址，如 api-server:9464、agent:9464 |

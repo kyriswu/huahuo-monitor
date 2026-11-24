@@ -6,9 +6,7 @@
 
 **测试 Kubernetes 集群**见 [Kubernetes 部署与 GitHub Actions](k8s/README.md)。每个监控组件各运行一个 Pod，Grafana 提供 Kubernetes 工作负载看板。测试集群发布从 `main` 走 workflow。
 
-下面记录的是原中心机配置，迁移时按迁移说明更新网络、节点地址与 DNS。
-
-中心私网 IP：172.18.102.96；主机 i-2zegtoygiiked53yntmj；环境 test。
+下面的 Compose 示例用于本地验证。部署地址、DNS 和指标采集目标按实际环境配置。
 
 ## 访问
 
@@ -20,7 +18,7 @@
 电脑可执行：
 
 ```sh
-ssh -N -o ExitOnForwardFailure=yes -L 3300:127.0.0.1:3300 -L 8888:127.0.0.1:8888 -L 9090:127.0.0.1:9090 root@112.126.81.226
+ssh -N -o ExitOnForwardFailure=yes -L 3300:127.0.0.1:3300 -L 8888:127.0.0.1:8888 -L 9090:127.0.0.1:9090 user@monitor-host
 ```
 
 Dozzle 可通过 http://localhost:8888，Prometheus 可通过 http://localhost:9090。
@@ -28,7 +26,7 @@ Grafana 的正式 URL 使用 HTTPS 且会话 Cookie 标记 Secure，请使用域
 需要通过 SSH 访问 Grafana 的 HTTPS 域名时，可改用：
 
 ```sh
-ssh -N -o ExitOnForwardFailure=yes -D 1080 root@112.126.81.226
+ssh -N -o ExitOnForwardFailure=yes -D 1080 user@monitor-host
 ```
 
 将浏览器 SOCKS5 代理设为 localhost:1080 后访问正式域名。
@@ -50,7 +48,7 @@ Dozzle 使用本机 socket，关闭 Actions、Shell，并启用 simple 登录。
 当前地址是中心机本身，Dozzle 已从本机 Docker socket 连接它，不重复登记为远端 Agent。
 真正的其他节点 Agent 使用相同版本 amir20/dozzle:v11.4.3，运行 agent 子命令；
 挂载 Docker socket 并关闭 DOZZLE_ENABLE_ACTIONS、DOZZLE_ENABLE_SHELL。
-7007 仅监听节点私网，网络规则仅允许中心私网 IP 172.18.102.96 访问。
+7007 仅监听节点私网，网络规则仅允许监控中心的私网地址访问。
 中心 .env 中以逗号分隔多个连接：
 
 ```dotenv
@@ -77,7 +75,7 @@ node_exporter 当前不部署，主机硬件指标使用云厂商监控；target
 已有 Vector 的 Nginx prometheus_exporter 地址单独写入 targets/nginx.yml，保留 env、host、service 标签。
 当前未发现本机 Vector 端点，targets/nginx.yml 保持空模板。
 当前共有五个业务抓取实例：Server 的 api-server:9464、admin:9464、worker:9464、scheduler:9464，以及 Agent 的 agent:9464（宿主仅回环映射 127.0.0.1:9469）。Prometheus 经共享 Docker 网络直接抓取各进程的独立指标端点，不经过 Alloy，也不使用业务 HTTP 端口的 /metrics。
-目标保留 project=huahuo、env=test、host=i-2zegtoygiiked53yntmj，并分别使用 service=huahuo-server / huahuo-agent 及真实 role。业务指标按应用自身 exported_env 筛选，目标 up 按静态 env 筛选；完整清单见 targets/apps.yml。
+目标保留 project=huahuo、env=test、host=monitor-center，并分别使用 service=huahuo-server / huahuo-agent 及真实 role。业务指标按应用自身 exported_env 筛选，目标 up 按静态 env 筛选；完整清单见 targets/apps.yml。
 文件发现每 15 秒刷新，无需重启。每次修改后可执行：
 
 ```sh
@@ -187,7 +185,7 @@ HTTP 明细只读取规范事件 `http.server.completed`，单条记录包含 me
 
 ## RDS 慢 SQL 日志
 
-已接入测试实例 `pgm-2ze7o54d25m8kn53` 的 `huahuo` 库。“花火AI / Server / 数据库慢查询”入口为 https://grafana.chuda.cc/d/database-slow-sql ，可看采集状态、SQL 耗时排行和逐条脱敏日志。
+按部署环境配置已验证的测试 RDS 实例和数据库。“花火AI / Server / 数据库慢查询”入口为 https://grafana.chuda.cc/d/database-slow-sql ，可看采集状态、SQL 耗时排行和逐条脱敏日志。
 
 使用 RDS 已有的 1 秒慢日志阈值，经只读 API 每分钟同步到 Loki，保留 72 小时。默认只显示业务记录；只读验收探针单独显示。没有修改 agent/server 代码、业务容器或数据库配置。尚无 HTTP traceId 与 SQL 的直接关联。
 

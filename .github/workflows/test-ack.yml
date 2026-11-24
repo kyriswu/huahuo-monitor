@@ -81,6 +81,10 @@ jobs:
         run: |
           : "${TEST_ACK_MONITOR_DEPLOY_COMMAND_ID:?Missing fixed test deployment command ID}"
           : "${TEST_ACK_MONITOR_ROLE_ARN:?Missing test deployment RAM role ARN}"
+          if [[ ! "$TEST_ACK_MONITOR_ROLE_ARN" =~ ^acs:ram::1472289886746775:role/[a-zA-Z0-9.-]+$ ]]; then
+            echo "::error::The test deployment RAM role must belong to account 1472289886746775."
+            exit 1
+          fi
       - uses: aliyun/setup-aliyun-cli-action@09a5f86915bb556e27bf050e9a5e339aeb073df5 # v1
         with:
           version: '3.5.3'

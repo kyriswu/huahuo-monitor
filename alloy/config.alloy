@@ -44,7 +44,7 @@ discovery.relabel "business" {
   }
   rule {
     target_label = "host"
-    replacement = "i-2zegtoygiiked53yntmj"
+    replacement = "monitor-center"
   }
   rule {
     target_label = "service"
@@ -90,7 +90,7 @@ discovery.relabel "agent" {
   }
   rule {
     target_label = "host"
-    replacement = "i-2zegtoygiiked53yntmj"
+    replacement = "monitor-center"
   }
   rule {
     target_label = "service"
