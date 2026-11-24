@@ -42,15 +42,14 @@ kubectl --context "$TEST_CONTEXT" -n ns-monitoring create configmap rds-slow-log
 
 ## GitHub Actions 发布
 
-[Monitoring test ACK](../.github/workflows/test-ack.yml) 在 `main` 推送时检查 Kubernetes 清单、Prometheus/Loki/Alloy 配置和 RDS 采集器。配置固定云助手命令后，校验成功接着发布到 GitHub 的 `test` 环境。也可在 Actions 中从 `main` 重新触发。工作流使用 GitHub OIDC 临时身份并串行发布。
+[Monitoring test ACK](../.github/workflows/test-ack.yml) 在 `main` 推送时检查 Kubernetes 清单、Prometheus/Loki/Alloy 配置和 RDS 采集器。校验成功且两个发布变量齐备时，工作流使用 GitHub OIDC 临时身份串行发布到 `test` 环境。也可在 Actions 中从 `main` 重新触发。
+
+workflow 沿用 Server test ACK 方案的北京 Node01（`i-2zeaydxol26pp3dxg1ak`）和 GitHub OIDC Provider（`acs:ram::1472289886746775:oidc-provider/github-actions-huahuo-server`）。监控固定命令与 RAM 角色分别绑定本项目的脚本和 GitHub OIDC subject。 [Server test ACK 发布配置](https://github.com/kyriswu/huahuo-server/pull/57/files)
 
 | GitHub 仓库变量 | 用途 |
 | --- | --- |
-| `TEST_ACK_MONITOR_ECS_INSTANCE_ID` | 已有、能访问 test ACK 私网入口的部署 ECS |
-| `TEST_ACK_MONITOR_DEPLOY_COMMAND_ID` | 固定云助手命令 ID，设定此值后启用 main 推送发布 |
-| `TEST_ACK_MONITOR_OIDC_PROVIDER_ARN` | 可信 GitHub Actions OIDC Provider |
+| `TEST_ACK_MONITOR_DEPLOY_COMMAND_ID` | Node01 上监控专用固定云助手命令 ID |
 | `TEST_ACK_MONITOR_ROLE_ARN` | 测试发布 RAM 角色 ARN |
-| `TEST_ACK_MONITOR_REGION_ID` | ECS 地域，默认为 `cn-beijing` |
 
 在 GitHub 的 `test` 环境允许 `main` 发布，按项目约定保持无人工审批。本仓库的默认 GitHub OIDC subject 为 `repo:kyriswu@5120703/huahuo-monitor@1466054194:environment:test`。RAM 信任策略匹配该 subject，受众为 `sts.aliyuncs.com`，操作范围限定为目标 ECS 和监控固定命令的 `InvokeCommand`、`DescribeInvocationResults`。 [GitHub OIDC subject 格式](https://docs.github.com/en/actions/reference/security/oidc#immutable-subject-claims)
 

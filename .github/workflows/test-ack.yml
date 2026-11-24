@@ -46,8 +46,8 @@ jobs:
           bash -n k8s/deploy-test-from-ecs.sh
           bash -n k8s/invoke-test-deploy.sh
       - name: Report pending test deployment setup
-        if: github.event_name == 'push' && vars.TEST_ACK_MONITOR_DEPLOY_COMMAND_ID == ''
-        run: echo "::notice::Test deployment is pending the fixed Cloud Assistant command configuration."
+        if: github.event_name == 'push' && (vars.TEST_ACK_MONITOR_DEPLOY_COMMAND_ID == '' || vars.TEST_ACK_MONITOR_ROLE_ARN == '')
+        run: echo "::notice::Test deployment is pending the monitor Cloud Assistant command ID or RAM role ARN."
 
   deploy:
     name: Deploy to test ACK
@@ -55,7 +55,8 @@ jobs:
     if: >-
       github.repository == 'kyriswu/huahuo-monitor' &&
       github.ref == 'refs/heads/main' &&
-      (github.event_name == 'workflow_dispatch' || vars.TEST_ACK_MONITOR_DEPLOY_COMMAND_ID != '')
+      (github.event_name == 'workflow_dispatch' ||
+       (vars.TEST_ACK_MONITOR_DEPLOY_COMMAND_ID != '' && vars.TEST_ACK_MONITOR_ROLE_ARN != ''))
     environment: test
     runs-on: ubuntu-latest
     timeout-minutes: 17
@@ -66,10 +67,11 @@ jobs:
       contents: read
       id-token: write
     env:
-      TEST_ACK_MONITOR_REGION_ID: ${{ vars.TEST_ACK_MONITOR_REGION_ID }}
-      TEST_ACK_MONITOR_ECS_INSTANCE_ID: ${{ vars.TEST_ACK_MONITOR_ECS_INSTANCE_ID }}
+      # Match the Server test ACK release host and identity provider.
+      TEST_ACK_MONITOR_REGION_ID: cn-beijing
+      TEST_ACK_MONITOR_ECS_INSTANCE_ID: i-2zeaydxol26pp3dxg1ak
       TEST_ACK_MONITOR_DEPLOY_COMMAND_ID: ${{ vars.TEST_ACK_MONITOR_DEPLOY_COMMAND_ID }}
-      TEST_ACK_MONITOR_OIDC_PROVIDER_ARN: ${{ vars.TEST_ACK_MONITOR_OIDC_PROVIDER_ARN }}
+      TEST_ACK_MONITOR_OIDC_PROVIDER_ARN: acs:ram::1472289886746775:oidc-provider/github-actions-huahuo-server
       TEST_ACK_MONITOR_ROLE_ARN: ${{ vars.TEST_ACK_MONITOR_ROLE_ARN }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -77,9 +79,7 @@ jobs:
           persist-credentials: false
       - name: Check test deployment settings
         run: |
-          : "${TEST_ACK_MONITOR_ECS_INSTANCE_ID:?Missing test deployment ECS instance ID}"
           : "${TEST_ACK_MONITOR_DEPLOY_COMMAND_ID:?Missing fixed test deployment command ID}"
-          : "${TEST_ACK_MONITOR_OIDC_PROVIDER_ARN:?Missing test OIDC provider ARN}"
           : "${TEST_ACK_MONITOR_ROLE_ARN:?Missing test deployment RAM role ARN}"
       - uses: aliyun/setup-aliyun-cli-action@09a5f86915bb556e27bf050e9a5e339aeb073df5 # v1
         with:
