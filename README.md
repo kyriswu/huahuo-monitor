@@ -96,7 +96,7 @@ http_requests_total{job="application",exported_env="test"}
 
 ## Dashboard
 
-“花火AI”根目录保留默认首页 [服务总览](https://grafana.chuda.cc/d/monitoring-overview)：两级请求环形图、HTTP 请求量/速率/状态/延迟和慢请求；底部四张摘要卡链接到 Agent 与 Server 专页。
+“花火AI”根目录的 [服务总览](https://grafana.chuda.cc/d/monitoring-overview) 首屏展示 QPS、5xx 比例、P95 耗时和抓取失败目标。下方的 Agent 首文本、Server 队列等待和实例采集状态提供进一步排查线索。展开“HTTP 请求构成与慢请求”可查看两级请求环形图、状态码和慢接口排行。
 
 | 目录 | 看板 |
 | --- | --- |

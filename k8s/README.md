@@ -23,7 +23,7 @@
 ## 首次集群配置
 
 1. 用确认过的 test ACK context 创建监控命名空间。业务部署提供 `ns-applications`。kube-state-metrics v2.19.1 使用 Kubernetes 1.35 客户端；检查目标集群版本与准入策略。
-2. 在 `ns-monitoring` 根据信任边界提供 `grafana-admin` Secret 的 `password` 键、`rds-api` Secret 的 `rds-api.json` 键，以及 `rds-slow-logs-settings` ConfigMap。沿用已有的测试账号和只读 RDS API 权限。ConfigMap 提供已核验的 `RDS_INSTANCE_ID`、`RDS_REGION_ID`、`RDS_DATABASE` 和 `RDS_ENV=test`。慢 SQL 看板源码的实例和数据库当前固定为原测试目标，切换目标时调整 `grafana/database_dashboard.py` 后重新生成看板。
+2. 在 `ns-monitoring` 根据信任边界提供 `grafana-admin` Secret 的 `password` 键、`rds-api` Secret 的 `rds-api.json` 键，以及 `rds-slow-logs-settings` ConfigMap。沿用已有的测试账号和只读 RDS API 权限。ConfigMap 提供已核验的 `RDS_INSTANCE_ID`、`RDS_REGION_ID`、`RDS_DATABASE` 和 `RDS_ENV=test`。慢 SQL 看板从所选环境和时段的 Loki 日志读取实例、数据库选项。
 3. 通过已有私有入口接入 Grafana，或先用端口转发验收。使用现有 Ingress Controller 时，参考 [ingress.yaml](ingress.yaml) 并设置测试域名、IngressClass 和 TLS Secret；将 [grafana.yaml](grafana.yaml) 的公开 URL 配置为同一域名后再切流。示例 Ingress 与旧环境使用同一域名，启用前确认 DNS 切换安排。
 
 ```sh

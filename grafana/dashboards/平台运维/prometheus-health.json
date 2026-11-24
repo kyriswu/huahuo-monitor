@@ -1203,6 +1203,15 @@
       "includeVars": true
     },
     {
+      "title": "Kubernetes",
+      "type": "dashboards",
+      "tags": [
+        "Kubernetes"
+      ],
+      "asDropdown": false,
+      "keepTime": true
+    },
+    {
       "title": "Grafana Explore",
       "type": "link",
       "url": "/explore",

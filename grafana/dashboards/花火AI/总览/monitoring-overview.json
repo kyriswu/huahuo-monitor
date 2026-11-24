@@ -1,7 +1,7 @@
 {
   "uid": "monitoring-overview",
   "title": "花火AI 服务总览",
-  "description": "勾选 HTTP 类别与业务，通过两级环形图查看请求分布；请求量、QPS、QPM、状态码和延迟同步筛选。",
+  "description": "查看 HTTP 流量、5xx 比例、P95 耗时和采集状态，并进入 Agent、Server 或平台看板继续排查。",
   "tags": [
     "花火AI"
   ],
@@ -93,10 +93,10 @@
           "uid": "prometheus"
         },
         "query": {
-          "query": "label_values(application_info{job=\"application\",service=~\"${service:pipe}\",exported_env=~\"$env\",host=~\"$host\"}, host)",
+          "query": "label_values(up{job=\"application\",service=~\"${service:pipe}\",env=~\"$env\"}, host)",
           "refId": "StandardVariableQuery"
         },
-        "definition": "label_values(application_info{job=\"application\",service=~\"${service:pipe}\",exported_env=~\"$env\",host=~\"$host\"}, host)",
+        "definition": "label_values(up{job=\"application\",service=~\"${service:pipe}\",env=~\"$env\"}, host)",
         "refresh": 1,
         "multi": true,
         "includeAll": true,
@@ -256,78 +256,13 @@
   },
   "panels": [
     {
-      "id": 3,
-      "title": "时段请求数",
-      "type": "stat",
-      "gridPos": {
-        "x": 0,
-        "y": 0,
-        "w": 4,
-        "h": 4
-      },
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "description": "当前 HTTP 类别在所选时段内的已完成请求增量；Prometheus 采样估算，显示取整。",
-      "fieldConfig": {
-        "defaults": {
-          "unit": "short",
-          "noValue": "暂无数据",
-          "color": {
-            "mode": "fixed",
-            "fixedColor": "blue"
-          },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              }
-            ]
-          },
-          "decimals": 0
-        },
-        "overrides": []
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "expr": "sum(increase(http_requests_total{job=\"application\",service=~\"${service:pipe}\",exported_env=~\"$env\",host=~\"$host\",traffic=~\"${traffic:pipe}\",route=~\"${business:pipe}\"}[$__range])) or (0 * count(up{job=\"application\",service=~\"${service:pipe}\",env=~\"$env\",host=~\"$host\"}))",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "legendFormat": "",
-          "instant": true,
-          "range": false,
-          "format": "time_series"
-        }
-      ],
-      "options": {
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "colorMode": "value",
-        "graphMode": "none",
-        "textMode": "value",
-        "orientation": "horizontal",
-        "justifyMode": "center"
-      }
-    },
-    {
       "id": 18,
       "title": "QPS · 5分钟均值",
       "type": "stat",
       "gridPos": {
-        "x": 4,
+        "x": 0,
         "y": 0,
-        "w": 4,
+        "w": 6,
         "h": 4
       },
       "datasource": {
@@ -338,7 +273,7 @@
       "fieldConfig": {
         "defaults": {
           "unit": "suffix:次/秒",
-          "noValue": "暂无数据",
+          "noValue": "无采集样本",
           "color": {
             "mode": "fixed",
             "fixedColor": "blue"
@@ -359,72 +294,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "sum(rate(http_requests_total{job=\"application\",service=~\"${service:pipe}\",exported_env=~\"$env\",host=~\"$host\",traffic=~\"${traffic:pipe}\",route=~\"${business:pipe}\"}[5m])) or (0 * count(up{job=\"application\",service=~\"${service:pipe}\",env=~\"$env\",host=~\"$host\"}))",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "legendFormat": "",
-          "instant": true,
-          "range": false,
-          "format": "time_series"
-        }
-      ],
-      "options": {
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "colorMode": "value",
-        "graphMode": "none",
-        "textMode": "value",
-        "orientation": "horizontal",
-        "justifyMode": "center"
-      }
-    },
-    {
-      "id": 19,
-      "title": "QPM · 5分钟均值",
-      "type": "stat",
-      "gridPos": {
-        "x": 8,
-        "y": 0,
-        "w": 4,
-        "h": 4
-      },
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "description": "与 QPS 使用相同 5 分钟窗口，QPM = QPS × 60；它是每分钟平均速率，不是某个自然分钟的精确次数。",
-      "fieldConfig": {
-        "defaults": {
-          "unit": "suffix:次/分",
-          "noValue": "暂无数据",
-          "color": {
-            "mode": "fixed",
-            "fixedColor": "blue"
-          },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              }
-            ]
-          },
-          "decimals": 2
-        },
-        "overrides": []
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "expr": "60 * sum(rate(http_requests_total{job=\"application\",service=~\"${service:pipe}\",exported_env=~\"$env\",host=~\"$host\",traffic=~\"${traffic:pipe}\",route=~\"${business:pipe}\"}[5m])) or (0 * count(up{job=\"application\",service=~\"${service:pipe}\",env=~\"$env\",host=~\"$host\"}))",
+          "expr": "sum(rate(http_requests_total{job=\"application\",service=~\"${service:pipe}\",exported_env=~\"$env\",host=~\"$host\",traffic=~\"${traffic:pipe}\",route=~\"${business:pipe}\"}[5m])) or (0 * (min(up{job=\"application\",service=~\"${service:pipe}\",env=~\"$env\",host=~\"$host\"}) == 1))",
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus"
@@ -452,170 +322,23 @@
     },
     {
       "id": 4,
-      "title": "时段 5xx 请求",
+      "title": "时段 5xx 比例",
       "type": "stat",
       "gridPos": {
-        "x": 12,
+        "x": 6,
         "y": 0,
-        "w": 4,
+        "w": 6,
         "h": 4
       },
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"
       },
-      "description": "当前 HTTP 类别中服务端 5xx 响应数。401、404 等 4xx 不计入。点击查看状态码与接口。",
-      "fieldConfig": {
-        "defaults": {
-          "unit": "short",
-          "noValue": "暂无数据",
-          "color": {
-            "mode": "thresholds"
-          },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "red",
-                "value": 0.5
-              }
-            ]
-          },
-          "decimals": 0,
-          "links": [
-            {
-              "title": "查看当前类别的 5xx 状态码和接口",
-              "url": "/d/http-errors?from=${__from}&to=${__to}&${env:queryparam}&${service:queryparam}&${traffic:queryparam}&${business:queryparam}&${host:queryparam}&var-role=%24__all&var-status=5..",
-              "oneClick": true
-            }
-          ]
-        },
-        "overrides": []
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "expr": "(sum(increase(http_requests_total{job=\"application\",service=~\"${service:pipe}\",exported_env=~\"$env\",host=~\"$host\",traffic=~\"${traffic:pipe}\",route=~\"${business:pipe}\",status=~\"5..\"}[$__range])) or (0 * count(up{job=\"application\",service=~\"${service:pipe}\",env=~\"$env\",host=~\"$host\"})))",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "legendFormat": "",
-          "instant": true,
-          "range": false,
-          "format": "time_series"
-        }
-      ],
-      "options": {
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "colorMode": "value",
-        "graphMode": "none",
-        "textMode": "value",
-        "orientation": "horizontal",
-        "justifyMode": "center"
-      }
-    },
-    {
-      "id": 9,
-      "title": "时段慢请求",
-      "type": "stat",
-      "gridPos": {
-        "x": 16,
-        "y": 0,
-        "w": 4,
-        "h": 4
-      },
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "description": "当前 HTTP 类别中严格超过顶部耗时阈值的已完成请求；采样估算。点击查看排行与已保留日志。",
-      "fieldConfig": {
-        "defaults": {
-          "unit": "short",
-          "noValue": "暂无数据",
-          "color": {
-            "mode": "fixed",
-            "fixedColor": "blue"
-          },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              }
-            ]
-          },
-          "decimals": 0,
-          "links": [
-            {
-              "title": "查看当前类别的慢请求",
-              "url": "/d/slow-requests?from=${__from}&to=${__to}&${env:queryparam}&${service:queryparam}&${traffic:queryparam}&${business:queryparam}&${host:queryparam}&var-role=%24__all&${slow_seconds:queryparam}",
-              "oneClick": true
-            }
-          ]
-        },
-        "overrides": []
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "expr": "(clamp_min(sum(increase(http_request_duration_seconds_count{job=\"application\",service=~\"${service:pipe}\",exported_env=~\"$env\",host=~\"$host\",traffic=~\"${traffic:pipe}\",route=~\"${business:pipe}\"}[$__range])) - sum(increase(http_request_duration_seconds_bucket{job=\"application\",service=~\"${service:pipe}\",exported_env=~\"$env\",host=~\"$host\",traffic=~\"${traffic:pipe}\",route=~\"${business:pipe}\",le=\"$slow_seconds\"}[$__range])), 0) or (0 * count(up{job=\"application\",service=~\"${service:pipe}\",env=~\"$env\",host=~\"$host\"})))",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "legendFormat": "",
-          "instant": true,
-          "range": false,
-          "format": "time_series"
-        }
-      ],
-      "options": {
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "colorMode": "value",
-        "graphMode": "none",
-        "textMode": "value",
-        "orientation": "horizontal",
-        "justifyMode": "center"
-      }
-    },
-    {
-      "id": 10,
-      "title": "慢请求占比",
-      "type": "stat",
-      "gridPos": {
-        "x": 20,
-        "y": 0,
-        "w": 4,
-        "h": 4
-      },
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "description": "当前 HTTP 类别中，严格超过顶部阈值的请求占全部已完成请求的比例；没有请求时留空。",
+      "description": "所选时段的 5xx 占全部已完成请求的比例。点击查看接口、状态码与日志。",
       "fieldConfig": {
         "defaults": {
           "unit": "percent",
-          "noValue": "无请求",
+          "noValue": "无有效请求样本",
           "color": {
             "mode": "fixed",
             "fixedColor": "blue"
@@ -632,8 +355,8 @@
           "decimals": 2,
           "links": [
             {
-              "title": "查看当前类别的慢请求",
-              "url": "/d/slow-requests?from=${__from}&to=${__to}&${env:queryparam}&${service:queryparam}&${traffic:queryparam}&${business:queryparam}&${host:queryparam}&var-role=%24__all&${slow_seconds:queryparam}",
+              "title": "查看 5xx 状态码与接口",
+              "url": "/d/http-errors?from=${__from}&to=${__to}&${env:queryparam}&${service:queryparam}&${traffic:queryparam}&${business:queryparam}&${host:queryparam}&var-role=%24__all&var-status=5..",
               "oneClick": true
             }
           ]
@@ -643,7 +366,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "100 * (clamp_min(sum(increase(http_request_duration_seconds_count{job=\"application\",service=~\"${service:pipe}\",exported_env=~\"$env\",host=~\"$host\",traffic=~\"${traffic:pipe}\",route=~\"${business:pipe}\"}[$__range])) - sum(increase(http_request_duration_seconds_bucket{job=\"application\",service=~\"${service:pipe}\",exported_env=~\"$env\",host=~\"$host\",traffic=~\"${traffic:pipe}\",route=~\"${business:pipe}\",le=\"$slow_seconds\"}[$__range])), 0) or (0 * count(up{job=\"application\",service=~\"${service:pipe}\",env=~\"$env\",host=~\"$host\"}))) / (sum(increase(http_request_duration_seconds_count{job=\"application\",service=~\"${service:pipe}\",exported_env=~\"$env\",host=~\"$host\",traffic=~\"${traffic:pipe}\",route=~\"${business:pipe}\"}[$__range])) > 0)",
+          "expr": "100 * (sum(increase(http_requests_total{job=\"application\",service=~\"${service:pipe}\",exported_env=~\"$env\",host=~\"$host\",traffic=~\"${traffic:pipe}\",route=~\"${business:pipe}\",status=~\"5..\"}[$__range])) or (0 * sum(increase(http_requests_total{job=\"application\",service=~\"${service:pipe}\",exported_env=~\"$env\",host=~\"$host\",traffic=~\"${traffic:pipe}\",route=~\"${business:pipe}\"}[$__range])))) / (sum(increase(http_requests_total{job=\"application\",service=~\"${service:pipe}\",exported_env=~\"$env\",host=~\"$host\",traffic=~\"${traffic:pipe}\",route=~\"${business:pipe}\"}[$__range])) > 0)",
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus"
@@ -670,26 +393,27 @@
       }
     },
     {
-      "id": 21,
-      "title": "HTTP 类别占比 · 点击筛选",
-      "type": "piechart",
+      "id": 28,
+      "title": "时段 P95 耗时",
+      "type": "stat",
       "gridPos": {
-        "x": 0,
-        "y": 4,
+        "x": 12,
+        "y": 0,
         "w": 6,
-        "h": 9
+        "h": 4
       },
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"
       },
-      "description": "按应用上报的 traffic 分类，比较所选服务、环境、主机和时段的全部 HTTP 类别；不按 URL 猜分类。分类表示物理路由性质，不代表调用者来自公网或私网。旧版无 traffic 的历史指标不混入。点击扇区筛选并重置业务；顶部支持复选。",
+      "description": "所选时段已完成请求的直方图估算。SSE 耗时包含连接寿命，Agent 首文本等待单独统计。",
       "fieldConfig": {
         "defaults": {
-          "unit": "short",
-          "noValue": "暂无数据",
+          "unit": "s",
+          "noValue": "无耗时样本",
           "color": {
-            "mode": "palette-classic"
+            "mode": "fixed",
+            "fixedColor": "blue"
           },
           "thresholds": {
             "mode": "absolute",
@@ -700,142 +424,60 @@
               }
             ]
           },
-          "min": 0,
-          "decimals": 0,
-          "links": [
-            {
-              "title": "切换到这个 HTTP 类别",
-              "url": "/d/monitoring-overview?from=${__from}&to=${__to}&${env:queryparam}&${host:queryparam}&${service:queryparam}&${slow_seconds:queryparam}&var-traffic=${__field.labels.scope_pattern:percentencode}&var-business=%24__all",
-              "oneClick": true
-            }
-          ]
+          "decimals": 3
         },
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "外部 API"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "mode": "fixed",
-                  "fixedColor": "blue"
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "内部 API"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "mode": "fixed",
-                  "fixedColor": "purple"
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "管理端"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "mode": "fixed",
-                  "fixedColor": "orange"
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "其他 HTTP"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "mode": "fixed",
-                  "fixedColor": "gray"
-                }
-              }
-            ]
-          }
-        ]
+        "overrides": []
       },
       "targets": [
         {
           "refId": "A",
-          "expr": "label_replace(label_replace((sum(increase(http_requests_total{job=\"application\",service=~\"${service:pipe}\",exported_env=~\"$env\",host=~\"$host\",traffic=\"public\"}[$__range])) or (0 * count(up{job=\"application\",service=~\"${service:pipe}\",env=~\"$env\",host=~\"$host\"}))),\"http_class\",\"外部 API\",\"__name__\",\".*\"),\"scope_pattern\",\"public\",\"__name__\",\".*\") or label_replace(label_replace((sum(increase(http_requests_total{job=\"application\",service=~\"${service:pipe}\",exported_env=~\"$env\",host=~\"$host\",traffic=\"internal\"}[$__range])) or (0 * count(up{job=\"application\",service=~\"${service:pipe}\",env=~\"$env\",host=~\"$host\"}))),\"http_class\",\"内部 API\",\"__name__\",\".*\"),\"scope_pattern\",\"internal\",\"__name__\",\".*\") or label_replace(label_replace((sum(increase(http_requests_total{job=\"application\",service=~\"${service:pipe}\",exported_env=~\"$env\",host=~\"$host\",traffic=\"admin\"}[$__range])) or (0 * count(up{job=\"application\",service=~\"${service:pipe}\",env=~\"$env\",host=~\"$host\"}))),\"http_class\",\"管理端\",\"__name__\",\".*\"),\"scope_pattern\",\"admin\",\"__name__\",\".*\") or label_replace(label_replace((sum(increase(http_requests_total{job=\"application\",service=~\"${service:pipe}\",exported_env=~\"$env\",host=~\"$host\",traffic=\"other\"}[$__range])) or (0 * count(up{job=\"application\",service=~\"${service:pipe}\",env=~\"$env\",host=~\"$host\"}))),\"http_class\",\"其他 HTTP\",\"__name__\",\".*\"),\"scope_pattern\",\"other\",\"__name__\",\".*\")",
+          "expr": "histogram_quantile(0.95, sum by (le) (increase(http_request_duration_seconds_bucket{job=\"application\",service=~\"${service:pipe}\",exported_env=~\"$env\",host=~\"$host\",traffic=~\"${traffic:pipe}\",route=~\"${business:pipe}\"}[$__range])))",
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "legendFormat": "{{http_class}}",
+          "legendFormat": "",
           "instant": true,
           "range": false,
           "format": "time_series"
         }
       ],
       "options": {
-        "pieType": "donut",
-        "displayLabels": [
-          "percent"
-        ],
-        "legend": {
-          "displayMode": "table",
-          "placement": "bottom",
-          "showLegend": true,
-          "values": [
-            "value",
-            "percent"
-          ]
-        },
-        "tooltip": {
-          "mode": "single",
-          "sort": "desc",
-          "hideZeros": false
-        },
         "reduceOptions": {
           "calcs": [
             "lastNotNull"
           ],
-          "values": false,
-          "fields": ""
-        }
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value",
+        "orientation": "horizontal",
+        "justifyMode": "center"
       }
     },
     {
-      "id": 22,
-      "title": "业务请求占比 · 点击下钻",
-      "type": "piechart",
+      "id": 29,
+      "title": "抓取失败目标",
+      "type": "stat",
       "gridPos": {
-        "x": 6,
-        "y": 4,
+        "x": 18,
+        "y": 0,
         "w": 6,
-        "h": 9
+        "h": 4
       },
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"
       },
-      "description": "按路由模块细分当前所选 HTTP 类别与业务，仅显示所选时段有请求增量的业务。图例显示模块、请求量和占比；点击扇区继续筛选该业务，顶部复选框支持多选。",
+      "description": "按当前时间范围结束时刻统计已发现但抓取失败的目标，明细见实例采集状态。",
       "fieldConfig": {
         "defaults": {
           "unit": "short",
-          "noValue": "暂无数据",
+          "noValue": "无采集样本",
           "color": {
-            "mode": "palette-classic"
+            "mode": "thresholds"
           },
           "thresholds": {
             "mode": "absolute",
@@ -843,16 +485,23 @@
               {
                 "color": "green",
                 "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
               }
             ]
           },
-          "min": 0,
           "decimals": 0,
-          "links": [
+          "mappings": [
             {
-              "title": "查看这个业务的请求",
-              "url": "/d/monitoring-overview?from=${__from}&to=${__to}&${env:queryparam}&${host:queryparam}&${service:queryparam}&${traffic:queryparam}&${slow_seconds:queryparam}&var-business=${__field.labels.business_pattern:percentencode}",
-              "oneClick": true
+              "type": "value",
+              "options": {
+                "-1": {
+                  "text": "未发现目标",
+                  "color": "orange"
+                }
+              }
             }
           ]
         },
@@ -861,43 +510,30 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "sum by (business,business_pattern) (label_replace((label_replace((label_replace((label_replace((label_replace((label_replace((label_replace((label_replace((label_replace((label_replace((label_replace((label_replace((label_replace((label_replace((label_replace((label_replace((label_replace((label_replace((label_replace((label_replace((label_replace((label_replace((increase(http_requests_total{job=\"application\",service=~\"${service:pipe}\",exported_env=~\"$env\",host=~\"$host\",traffic=~\"${traffic:pipe}\",route=~\"${business:pipe}\"}[$__range])),\"business\",\"$1\",\"route\",\"(.*)\")),\"business_pattern\",\"$1\",\"route\",\"(.*)\")),\"business\",\"$2\",\"route\",\"/(api|internal|admin/api)/v[0-9]+/([^/]+)(/.*)?\")),\"business_pattern\",\"/(api|internal|admin/api)/v[0-9]+/$2(/.*)?\",\"route\",\"/(api|internal|admin/api)/v[0-9]+/([^/]+)(/.*)?\")),\"business\",\"管理页面与资源\",\"route\",\"/admin(/assets/.*)?\")),\"business_pattern\",\"/admin(/assets/.*)?\",\"route\",\"/admin(/assets/.*)?\")),\"business\",\"未匹配路径\",\"route\",\"unmatched\")),\"business\",\"Agent 对话与运行\",\"route\",\"/api/agents(/.*)?\")),\"business_pattern\",\"/api/agents(/.*)?\",\"route\",\"/api/agents(/.*)?\")),\"business\",\"Agent 登录认证\",\"route\",\"/(studio-auth|api/auth)(/.*)?\")),\"business_pattern\",\"/(studio-auth|api/auth)(/.*)?\",\"route\",\"/(studio-auth|api/auth)(/.*)?\")),\"business\",\"其他 HTTP\",\"route\",\"/other\")),\"business_pattern\",\"/other\",\"route\",\"/other\")),\"business\",\"网关鉴权\",\"business\",\"gateway\")),\"business\",\"账号认证\",\"business\",\"auth\")),\"business\",\"用户信息\",\"business\",\"me\")),\"business\",\"系统配置\",\"business\",\"configuration\")),\"business\",\"文档调试\",\"business\",\"document-trials\")),\"business\",\"处理节点\",\"business\",\"processing-nodes\")),\"business\",\"文档解析\",\"business\",\"document-parser\")),\"business\",\"管理端登录\",\"business\",\"login\")),\"business\",\"管理端登出\",\"business\",\"logout\")) > 0",
+          "expr": "sum(1 - up{job=\"application\",service=~\"${service:pipe}\",env=~\"$env\",host=~\"$host\"}) or (-1 * (absent(up{job=\"application\",service=~\"${service:pipe}\",env=~\"$env\",host=~\"$host\"}) and on () (up{job=\"prometheus\"} == 1)))",
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "legendFormat": "{{business}}",
+          "legendFormat": "",
           "instant": true,
           "range": false,
           "format": "time_series"
         }
       ],
       "options": {
-        "pieType": "donut",
-        "displayLabels": [
-          "percent"
-        ],
-        "legend": {
-          "displayMode": "table",
-          "placement": "bottom",
-          "showLegend": true,
-          "values": [
-            "value",
-            "percent"
-          ]
-        },
-        "tooltip": {
-          "mode": "single",
-          "sort": "desc",
-          "hideZeros": false
-        },
         "reduceOptions": {
           "calcs": [
             "lastNotNull"
           ],
-          "values": false,
-          "fields": ""
-        }
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value",
+        "orientation": "horizontal",
+        "justifyMode": "center"
       }
     },
     {
@@ -905,16 +541,16 @@
       "title": "QPS 趋势 · 5分钟均值",
       "type": "timeseries",
       "gridPos": {
-        "x": 12,
+        "x": 0,
         "y": 4,
         "w": 12,
-        "h": 9
+        "h": 8
       },
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"
       },
-      "description": "当前 HTTP 类别的已完成请求速率；每个点使用此前 5 分钟的滑动平均，QPM = QPS × 60。",
+      "description": "当前 HTTP 类别的已完成请求速率，每个点为此前 5 分钟的平均值。",
       "fieldConfig": {
         "defaults": {
           "unit": "suffix:次/秒",
@@ -1075,152 +711,24 @@
       }
     },
     {
-      "id": 7,
-      "title": "响应状态码 · 所选类别",
-      "type": "bargauge",
-      "gridPos": {
-        "x": 0,
-        "y": 13,
-        "w": 8,
-        "h": 8
-      },
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "description": "所选时段内，当前 HTTP 类别各响应状态码的请求数；按数量降序。",
-      "fieldConfig": {
-        "defaults": {
-          "unit": "short",
-          "noValue": "暂无数据",
-          "color": {
-            "mode": "palette-classic"
-          },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              }
-            ]
-          },
-          "min": 0,
-          "decimals": 0
-        },
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byRegexp",
-              "options": "^2[0-9][0-9]$"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "mode": "fixed",
-                  "fixedColor": "green"
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byRegexp",
-              "options": "^3[0-9][0-9]$"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "mode": "fixed",
-                  "fixedColor": "blue"
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byRegexp",
-              "options": "^4[0-9][0-9]$"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "mode": "fixed",
-                  "fixedColor": "orange"
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byRegexp",
-              "options": "^5[0-9][0-9]$"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "mode": "fixed",
-                  "fixedColor": "red"
-                }
-              }
-            ]
-          }
-        ]
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "expr": "sort_desc(sum by (status) (increase(http_requests_total{job=\"application\",service=~\"${service:pipe}\",exported_env=~\"$env\",host=~\"$host\",traffic=~\"${traffic:pipe}\",route=~\"${business:pipe}\"}[$__range])) > 0)",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "legendFormat": "{{status}}",
-          "instant": true,
-          "range": false,
-          "format": "time_series"
-        }
-      ],
-      "options": {
-        "orientation": "horizontal",
-        "displayMode": "basic",
-        "valueMode": "color",
-        "namePlacement": "left",
-        "showUnfilled": false,
-        "minVizHeight": 24,
-        "maxVizHeight": 52,
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "values": false,
-          "fields": ""
-        }
-      }
-    },
-    {
       "id": 8,
-      "title": "响应延迟 · P50 / P95 / P99",
+      "title": "P95 响应延迟趋势",
       "type": "timeseries",
       "gridPos": {
-        "x": 8,
-        "y": 13,
-        "w": 16,
+        "x": 12,
+        "y": 4,
+        "w": 12,
         "h": 8
       },
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"
       },
-      "description": "当前 HTTP 类别中全部已完成请求的耗时分位数，按 5 分钟窗口从直方图估算；没有请求的窗口留空。",
+      "description": "按 5 分钟窗口从直方图估算。没有请求的窗口留空。",
       "fieldConfig": {
         "defaults": {
           "unit": "s",
-          "noValue": "无请求",
+          "noValue": "无耗时样本",
           "color": {
             "mode": "palette-classic"
           },
@@ -1344,69 +852,12 @@
                 }
               }
             ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "P50"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "mode": "fixed",
-                  "fixedColor": "green"
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "P95"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "mode": "fixed",
-                  "fixedColor": "blue"
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "P99"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "mode": "fixed",
-                  "fixedColor": "orange"
-                }
-              }
-            ]
           }
         ]
       },
       "targets": [
         {
           "refId": "A",
-          "expr": "histogram_quantile(0.50, sum by (le) (increase(http_request_duration_seconds_bucket{job=\"application\",service=~\"${service:pipe}\",exported_env=~\"$env\",host=~\"$host\",traffic=~\"${traffic:pipe}\",route=~\"${business:pipe}\"}[5m])))",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "legendFormat": "P50",
-          "instant": false,
-          "range": true,
-          "format": "time_series"
-        },
-        {
-          "refId": "B",
           "expr": "histogram_quantile(0.95, sum by (le) (increase(http_request_duration_seconds_bucket{job=\"application\",service=~\"${service:pipe}\",exported_env=~\"$env\",host=~\"$host\",traffic=~\"${traffic:pipe}\",route=~\"${business:pipe}\"}[5m])))",
           "datasource": {
             "type": "prometheus",
@@ -1416,18 +867,6 @@
           "instant": false,
           "range": true,
           "format": "time_series"
-        },
-        {
-          "refId": "C",
-          "expr": "histogram_quantile(0.99, sum by (le) (increase(http_request_duration_seconds_bucket{job=\"application\",service=~\"${service:pipe}\",exported_env=~\"$env\",host=~\"$host\",traffic=~\"${traffic:pipe}\",route=~\"${business:pipe}\"}[5m])))",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "legendFormat": "P99",
-          "instant": false,
-          "range": true,
-          "format": "time_series"
         }
       ],
       "options": {
@@ -1443,214 +882,39 @@
       }
     },
     {
-      "id": 13,
-      "title": "慢请求 · 当前 HTTP 类别",
+      "id": 23,
+      "title": "业务层概况 · 点击进入 Agent / Server",
       "type": "row",
       "collapsed": false,
       "gridPos": {
         "x": 0,
-        "y": 21,
+        "y": 12,
         "w": 24,
         "h": 1
       }
     },
     {
-      "id": 11,
-      "title": "慢请求速率 · 5分钟均值",
-      "type": "timeseries",
+      "id": 24,
+      "title": "Agent 运行终态 · 时段",
+      "type": "stat",
       "gridPos": {
         "x": 0,
-        "y": 22,
-        "w": 10,
-        "h": 8
+        "y": 13,
+        "w": 6,
+        "h": 4
       },
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"
       },
-      "description": "当前 HTTP 类别中严格超过顶部阈值的已完成请求，按角色堆叠；显示此前 5 分钟的每分钟平均速率。长连接耗时需结合接口用途判断。",
-      "fieldConfig": {
-        "defaults": {
-          "unit": "suffix:次/分",
-          "noValue": "暂无数据",
-          "color": {
-            "mode": "palette-classic"
-          },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              }
-            ]
-          },
-          "min": 0,
-          "custom": {
-            "drawStyle": "bars",
-            "lineInterpolation": "linear",
-            "lineWidth": 0,
-            "fillOpacity": 85,
-            "showPoints": "never",
-            "spanNulls": false,
-            "axisBorderShow": false,
-            "axisPlacement": "auto",
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "barAlignment": 0,
-            "stacking": {
-              "mode": "normal",
-              "group": "requests"
-            },
-            "axisSoftMax": 1
-          }
-        },
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "api-server"
-            },
-            "properties": [
-              {
-                "id": "displayName",
-                "value": "API 服务"
-              },
-              {
-                "id": "color",
-                "value": {
-                  "mode": "fixed",
-                  "fixedColor": "blue"
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "admin"
-            },
-            "properties": [
-              {
-                "id": "displayName",
-                "value": "管理端"
-              },
-              {
-                "id": "color",
-                "value": {
-                  "mode": "fixed",
-                  "fixedColor": "purple"
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "worker"
-            },
-            "properties": [
-              {
-                "id": "displayName",
-                "value": "后台处理"
-              },
-              {
-                "id": "color",
-                "value": {
-                  "mode": "fixed",
-                  "fixedColor": "green"
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "scheduler"
-            },
-            "properties": [
-              {
-                "id": "displayName",
-                "value": "定时任务"
-              },
-              {
-                "id": "color",
-                "value": {
-                  "mode": "fixed",
-                  "fixedColor": "orange"
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "agent"
-            },
-            "properties": [
-              {
-                "id": "displayName",
-                "value": "Agent"
-              },
-              {
-                "id": "color",
-                "value": {
-                  "mode": "fixed",
-                  "fixedColor": "red"
-                }
-              }
-            ]
-          }
-        ]
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "expr": "60 * clamp_min(sum by (role)(rate(http_request_duration_seconds_count{job=\"application\",service=~\"${service:pipe}\",exported_env=~\"$env\",host=~\"$host\",traffic=~\"${traffic:pipe}\",route=~\"${business:pipe}\"}[5m])) - sum by (role)(rate(http_request_duration_seconds_bucket{job=\"application\",service=~\"${service:pipe}\",exported_env=~\"$env\",host=~\"$host\",traffic=~\"${traffic:pipe}\",route=~\"${business:pipe}\",le=\"$slow_seconds\"}[5m])), 0)",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "legendFormat": "{{role}}",
-          "instant": false,
-          "range": true,
-          "format": "time_series"
-        }
-      ],
-      "options": {
-        "legend": {
-          "displayMode": "list",
-          "placement": "bottom",
-          "calcs": []
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        }
-      }
-    },
-    {
-      "id": 12,
-      "title": "慢接口排行 · 点击查看单次请求",
-      "type": "table",
-      "gridPos": {
-        "x": 10,
-        "y": 22,
-        "w": 14,
-        "h": 8
-      },
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "description": "按当前 HTTP 类别内的慢请求次数降序，最多 10 行。点击接口或数量，查看日志覆盖范围与已保留的逐条请求。",
+      "description": "原生运行终态的采样增量，不与 HTTP、执行段或模型调用相加。只含开始抓取后的增量。",
       "fieldConfig": {
         "defaults": {
           "unit": "short",
-          "noValue": "暂无数据",
+          "noValue": "无终态样本",
           "color": {
-            "mode": "palette-classic"
+            "mode": "fixed",
+            "fixedColor": "blue"
           },
           "thresholds": {
             "mode": "absolute",
@@ -1662,232 +926,20 @@
             ]
           },
           "decimals": 0,
-          "custom": {
-            "align": "left",
-            "cellOptions": {
-              "type": "auto"
+          "links": [
+            {
+              "title": "查看业务层详情",
+              "url": "/d/agent-runtime?from=${__from}&to=${__to}&${env:queryparam}&${host:queryparam}",
+              "oneClick": true
             }
-          }
+          ]
         },
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "角色"
-            },
-            "properties": [
-              {
-                "id": "mappings",
-                "value": [
-                  {
-                    "type": "value",
-                    "options": {
-                      "api-server": {
-                        "text": "API 服务"
-                      },
-                      "admin": {
-                        "text": "管理端"
-                      },
-                      "worker": {
-                        "text": "后台处理"
-                      },
-                      "scheduler": {
-                        "text": "定时任务"
-                      },
-                      "agent": {
-                        "text": "Agent"
-                      }
-                    }
-                  }
-                ]
-              },
-              {
-                "id": "custom.width",
-                "value": 120
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "服务"
-            },
-            "properties": [
-              {
-                "id": "mappings",
-                "value": [
-                  {
-                    "type": "value",
-                    "options": {
-                      "huahuo-server": {
-                        "text": "Server"
-                      },
-                      "huahuo-agent": {
-                        "text": "Agent"
-                      }
-                    }
-                  }
-                ]
-              },
-              {
-                "id": "custom.width",
-                "value": 110
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "接口"
-            },
-            "properties": [
-              {
-                "id": "links",
-                "value": [
-                  {
-                    "title": "查看这个接口的慢请求详情",
-                    "url": "/d/http-request-details?from=${__from}&to=${__to}&${env:queryparam}&var-service=${__data.fields[\"服务标识\"]:percentencode}&${traffic:queryparam}&${business:queryparam}&var-role=${__data.fields[\"角色标识\"]:percentencode}&var-host=${__data.fields[\"主机\"]:percentencode}&var-method=${__data.fields[\"方法\"]:percentencode}&var-route=${__data.fields[\"接口\"]:percentencode}&${slow_seconds:queryparam}&var-request_mode=slow",
-                    "oneClick": true
-                  }
-                ]
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "慢请求数"
-            },
-            "properties": [
-              {
-                "id": "links",
-                "value": [
-                  {
-                    "title": "查看这个接口的慢请求详情",
-                    "url": "/d/http-request-details?from=${__from}&to=${__to}&${env:queryparam}&var-service=${__data.fields[\"服务标识\"]:percentencode}&${traffic:queryparam}&${business:queryparam}&var-role=${__data.fields[\"角色标识\"]:percentencode}&var-host=${__data.fields[\"主机\"]:percentencode}&var-method=${__data.fields[\"方法\"]:percentencode}&var-route=${__data.fields[\"接口\"]:percentencode}&${slow_seconds:queryparam}&var-request_mode=slow",
-                    "oneClick": true
-                  }
-                ]
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "角色标识"
-            },
-            "properties": [
-              {
-                "id": "custom.hidden",
-                "value": true
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "服务标识"
-            },
-            "properties": [
-              {
-                "id": "custom.hidden",
-                "value": true
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "方法"
-            },
-            "properties": [
-              {
-                "id": "custom.width",
-                "value": 75
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "慢请求数"
-            },
-            "properties": [
-              {
-                "id": "custom.width",
-                "value": 160
-              },
-              {
-                "id": "color",
-                "value": {
-                  "mode": "fixed",
-                  "fixedColor": "orange"
-                }
-              },
-              {
-                "id": "custom.cellOptions",
-                "value": {
-                  "type": "gauge",
-                  "mode": "basic",
-                  "valueDisplayMode": "text"
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "主机"
-            },
-            "properties": [
-              {
-                "id": "custom.hidden",
-                "value": true
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "角色"
-            },
-            "properties": [
-              {
-                "id": "custom.width",
-                "value": 100
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "方法"
-            },
-            "properties": [
-              {
-                "id": "custom.width",
-                "value": 60
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "慢请求数"
-            },
-            "properties": [
-              {
-                "id": "custom.width",
-                "value": 100
-              }
-            ]
-          }
-        ]
+        "overrides": []
       },
       "targets": [
         {
           "refId": "A",
-          "expr": "topk(10, label_replace(label_replace(clamp_min(sum by (service,role,host,method,route)(increase(http_request_duration_seconds_count{job=\"application\",service=~\"${service:pipe}\",exported_env=~\"$env\",host=~\"$host\",traffic=~\"${traffic:pipe}\",route=~\"${business:pipe}\"}[$__range])) - sum by (service,role,host,method,route)(increase(http_request_duration_seconds_bucket{job=\"application\",service=~\"${service:pipe}\",exported_env=~\"$env\",host=~\"$host\",traffic=~\"${traffic:pipe}\",route=~\"${business:pipe}\",le=\"$slow_seconds\"}[$__range])), 0) > 0,\"role_key\",\"$1\",\"role\",\"(.+)\"),\"service_key\",\"$1\",\"service\",\"(.+)\"))",
+          "expr": "sum(increase(agent_runs_total{job=\"application\",service=~\"${service:pipe}\",exported_env=~\"$env\",host=~\"$host\",service=\"huahuo-agent\"}[$__range]))",
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus"
@@ -1895,67 +947,239 @@
           "legendFormat": "",
           "instant": true,
           "range": false,
-          "format": "table"
+          "format": "time_series"
         }
       ],
       "options": {
-        "showHeader": true,
-        "cellHeight": "md",
-        "sortBy": [
-          {
-            "displayName": "慢请求数",
-            "desc": true
-          }
-        ],
-        "footer": {
-          "show": false
-        }
-      },
-      "transformations": [
-        {
-          "id": "filterFieldsByName",
-          "options": {
-            "include": {
-              "names": [
-                "service",
-                "service_key",
-                "role",
-                "role_key",
-                "host",
-                "method",
-                "route",
-                "Value"
-              ]
-            }
-          }
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
         },
-        {
-          "id": "organize",
-          "options": {
-            "excludeByName": {},
-            "indexByName": {
-              "service": 0,
-              "service_key": 1,
-              "role": 2,
-              "role_key": 3,
-              "host": 4,
-              "method": 5,
-              "route": 6,
-              "Value": 7
-            },
-            "renameByName": {
-              "service": "服务",
-              "service_key": "服务标识",
-              "role": "角色",
-              "role_key": "角色标识",
-              "host": "主机",
-              "method": "方法",
-              "route": "接口",
-              "Value": "慢请求数"
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value",
+        "orientation": "horizontal",
+        "justifyMode": "center"
+      }
+    },
+    {
+      "id": 25,
+      "title": "Agent 首文本 P95",
+      "type": "stat",
+      "gridPos": {
+        "x": 6,
+        "y": 13,
+        "w": 6,
+        "h": 4
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "description": "初始运行开始到第一个非空文本，包含工具等待；非 HTTP/SSE 生命周期。",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "noValue": "无首文本样本",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "blue"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "decimals": 2,
+          "links": [
+            {
+              "title": "查看业务层详情",
+              "url": "/d/agent-runtime?from=${__from}&to=${__to}&${env:queryparam}&${host:queryparam}",
+              "oneClick": true
             }
-          }
+          ]
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "histogram_quantile(0.95,sum by (le) (increase(agent_time_to_first_text_seconds_bucket{job=\"application\",service=~\"${service:pipe}\",exported_env=~\"$env\",host=~\"$host\",service=\"huahuo-agent\"}[$__range])))",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "legendFormat": "",
+          "instant": true,
+          "range": false,
+          "format": "time_series"
         }
-      ]
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value",
+        "orientation": "horizontal",
+        "justifyMode": "center"
+      }
+    },
+    {
+      "id": 26,
+      "title": "最老可执行任务等待",
+      "type": "stat",
+      "gridPos": {
+        "x": 12,
+        "y": 13,
+        "w": 6,
+        "h": 4
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "description": "Server 各队列中已到期任务的最长等待时间，仅取 60 秒内更新的快照。",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "noValue": "无新鲜队列快照",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "blue"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "decimals": 0,
+          "links": [
+            {
+              "title": "查看业务层详情",
+              "url": "/d/server-workloads?from=${__from}&to=${__to}&${env:queryparam}&${host:queryparam}",
+              "oneClick": true
+            }
+          ]
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max(task_oldest_waiting_seconds{job=\"application\",service=~\"${service:pipe}\",exported_env=~\"$env\",host=~\"$host\",service=\"huahuo-server\",role=\"scheduler\"} and on (job,instance,exported_env,service,role,queue) (time() - task_backlog_observed_timestamp_seconds{job=\"application\",service=~\"${service:pipe}\",exported_env=~\"$env\",host=~\"$host\",service=\"huahuo-server\",role=\"scheduler\"} < 60))",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "legendFormat": "",
+          "instant": true,
+          "range": false,
+          "format": "time_series"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value",
+        "orientation": "horizontal",
+        "justifyMode": "center"
+      }
+    },
+    {
+      "id": 27,
+      "title": "Server 任务终态 · 时段",
+      "type": "stat",
+      "gridPos": {
+        "x": 18,
+        "y": 13,
+        "w": 6,
+        "h": 4
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "description": "已提交的任务终态，不是处理尝试次数，也不是本时段创建任务的成功率。",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "noValue": "无终态样本",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "blue"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "decimals": 0,
+          "links": [
+            {
+              "title": "查看业务层详情",
+              "url": "/d/server-workloads?from=${__from}&to=${__to}&${env:queryparam}&${host:queryparam}",
+              "oneClick": true
+            }
+          ]
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(increase(task_terminal_total{job=\"application\",service=~\"${service:pipe}\",exported_env=~\"$env\",host=~\"$host\",service=\"huahuo-server\"}[$__range]))",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "legendFormat": "",
+          "instant": true,
+          "range": false,
+          "format": "time_series"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value",
+        "orientation": "horizontal",
+        "justifyMode": "center"
+      }
     },
     {
       "id": 5,
@@ -1963,15 +1187,15 @@
       "type": "table",
       "gridPos": {
         "x": 0,
-        "y": 30,
+        "y": 17,
         "w": 24,
-        "h": 6
+        "h": 10
       },
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"
       },
-      "description": "目标状态按环境和主机查询，不随 HTTP 类别筛选。持续离线的已配置实例仍会保留。",
+      "description": "按环境、服务和主机筛选抓取目标。版本为该目标最近一次上报的值。",
       "fieldConfig": {
         "defaults": {
           "unit": "short",
@@ -2075,11 +1299,11 @@
                     "type": "value",
                     "options": {
                       "0": {
-                        "text": "异常",
+                        "text": "抓取失败",
                         "color": "red"
                       },
                       "1": {
-                        "text": "正常",
+                        "text": "抓取成功",
                         "color": "green"
                       }
                     }
@@ -2115,7 +1339,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "(up{job=\"application\",service=~\"${service:pipe}\",env=~\"$env\",host=~\"$host\"} * on (job,instance) group_left(version) application_info{job=\"application\",service=~\"${service:pipe}\",exported_env=~\"$env\",host=~\"$host\"}) or up{job=\"application\",service=~\"${service:pipe}\",env=~\"$env\",host=~\"$host\"}",
+          "expr": "(up{job=\"application\",service=~\"${service:pipe}\",env=~\"$env\",host=~\"$host\"} + on (job,instance) group_left(version) (0 * topk by (job,instance) (1, timestamp(application_info{job=\"application\",service=~\"${service:pipe}\",exported_env=~\"$env\",host=~\"$host\"})))) or on (job,instance) up{job=\"application\",service=~\"${service:pipe}\",env=~\"$env\",host=~\"$host\"}",
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus"
@@ -2180,304 +1404,1089 @@
       ]
     },
     {
-      "id": 23,
-      "title": "业务层概况 · 点击进入 Agent / Server",
+      "id": 13,
+      "title": "HTTP 请求构成与慢请求",
       "type": "row",
-      "collapsed": false,
+      "collapsed": true,
       "gridPos": {
         "x": 0,
-        "y": 36,
+        "y": 27,
         "w": 24,
         "h": 1
-      }
-    },
-    {
-      "id": 24,
-      "title": "Agent 运行终态 · 时段",
-      "type": "stat",
-      "gridPos": {
-        "x": 0,
-        "y": 37,
-        "w": 6,
-        "h": 4
       },
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "description": "原生运行终态的采样增量，不与 HTTP、执行段或模型调用相加。只含开始抓取后的增量。",
-      "fieldConfig": {
-        "defaults": {
-          "unit": "short",
-          "noValue": "无终态样本",
-          "color": {
-            "mode": "fixed",
-            "fixedColor": "blue"
-          },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              }
-            ]
-          },
-          "decimals": 0,
-          "links": [
-            {
-              "title": "查看业务层详情",
-              "url": "/d/agent-runtime?from=${__from}&to=${__to}&${env:queryparam}&${host:queryparam}",
-              "oneClick": true
-            }
-          ]
-        },
-        "overrides": []
-      },
-      "targets": [
+      "panels": [
         {
-          "refId": "A",
-          "expr": "sum(increase(agent_runs_total{job=\"application\",service=~\"${service:pipe}\",exported_env=~\"$env\",host=~\"$host\",service=\"huahuo-agent\"}[$__range]))",
+          "id": 3,
+          "title": "时段请求数",
+          "type": "stat",
+          "gridPos": {
+            "x": 0,
+            "y": 28,
+            "w": 8,
+            "h": 4
+          },
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "legendFormat": "",
-          "instant": true,
-          "range": false,
-          "format": "time_series"
-        }
-      ],
-      "options": {
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "colorMode": "value",
-        "graphMode": "none",
-        "textMode": "value",
-        "orientation": "horizontal",
-        "justifyMode": "center"
-      }
-    },
-    {
-      "id": 25,
-      "title": "Agent 首文本 P95",
-      "type": "stat",
-      "gridPos": {
-        "x": 6,
-        "y": 37,
-        "w": 6,
-        "h": 4
-      },
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "description": "初始运行开始到第一个非空文本，包含工具等待；非 HTTP/SSE 生命周期。",
-      "fieldConfig": {
-        "defaults": {
-          "unit": "s",
-          "noValue": "无首文本样本",
-          "color": {
-            "mode": "fixed",
-            "fixedColor": "blue"
+          "description": "所选时段内已完成请求的采样估算，显示取整。",
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "noValue": "无采集样本",
+              "color": {
+                "mode": "fixed",
+                "fixedColor": "blue"
+              },
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              },
+              "decimals": 0
+            },
+            "overrides": []
           },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              }
-            ]
-          },
-          "decimals": 2,
-          "links": [
+          "targets": [
             {
-              "title": "查看业务层详情",
-              "url": "/d/agent-runtime?from=${__from}&to=${__to}&${env:queryparam}&${host:queryparam}",
-              "oneClick": true
+              "refId": "A",
+              "expr": "sum(increase(http_requests_total{job=\"application\",service=~\"${service:pipe}\",exported_env=~\"$env\",host=~\"$host\",traffic=~\"${traffic:pipe}\",route=~\"${business:pipe}\"}[$__range])) or (0 * (min(up{job=\"application\",service=~\"${service:pipe}\",env=~\"$env\",host=~\"$host\"}) == 1))",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "legendFormat": "",
+              "instant": true,
+              "range": false,
+              "format": "time_series"
             }
-          ]
+          ],
+          "options": {
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "colorMode": "value",
+            "graphMode": "none",
+            "textMode": "value",
+            "orientation": "horizontal",
+            "justifyMode": "center"
+          }
         },
-        "overrides": []
-      },
-      "targets": [
         {
-          "refId": "A",
-          "expr": "histogram_quantile(0.95,sum by (le) (increase(agent_time_to_first_text_seconds_bucket{job=\"application\",service=~\"${service:pipe}\",exported_env=~\"$env\",host=~\"$host\",service=\"huahuo-agent\"}[$__range])))",
+          "id": 9,
+          "title": "时段慢请求",
+          "type": "stat",
+          "gridPos": {
+            "x": 8,
+            "y": 28,
+            "w": 8,
+            "h": 4
+          },
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "legendFormat": "",
-          "instant": true,
-          "range": false,
-          "format": "time_series"
-        }
-      ],
-      "options": {
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "colorMode": "value",
-        "graphMode": "none",
-        "textMode": "value",
-        "orientation": "horizontal",
-        "justifyMode": "center"
-      }
-    },
-    {
-      "id": 26,
-      "title": "Server 可调度任务",
-      "type": "stat",
-      "gridPos": {
-        "x": 12,
-        "y": 37,
-        "w": 6,
-        "h": 4
-      },
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "description": "先剔除超过 60 秒未更新的快照，再对共享队列取 max，避免多 Scheduler 重复累加。",
-      "fieldConfig": {
-        "defaults": {
-          "unit": "short",
-          "noValue": "无新鲜队列快照",
-          "color": {
-            "mode": "fixed",
-            "fixedColor": "blue"
+          "description": "当前 HTTP 类别中严格超过顶部耗时阈值的已完成请求；采样估算。点击查看排行与已保留日志。",
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "noValue": "暂无数据",
+              "color": {
+                "mode": "fixed",
+                "fixedColor": "blue"
+              },
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              },
+              "decimals": 0,
+              "links": [
+                {
+                  "title": "查看当前类别的慢请求",
+                  "url": "/d/slow-requests?from=${__from}&to=${__to}&${env:queryparam}&${service:queryparam}&${traffic:queryparam}&${business:queryparam}&${host:queryparam}&var-role=%24__all&${slow_seconds:queryparam}",
+                  "oneClick": true
+                }
+              ]
+            },
+            "overrides": []
           },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              }
-            ]
-          },
-          "decimals": 0,
-          "links": [
+          "targets": [
             {
-              "title": "查看业务层详情",
-              "url": "/d/server-workloads?from=${__from}&to=${__to}&${env:queryparam}&${host:queryparam}",
-              "oneClick": true
+              "refId": "A",
+              "expr": "(clamp_min(sum(increase(http_request_duration_seconds_count{job=\"application\",service=~\"${service:pipe}\",exported_env=~\"$env\",host=~\"$host\",traffic=~\"${traffic:pipe}\",route=~\"${business:pipe}\"}[$__range])) - sum(increase(http_request_duration_seconds_bucket{job=\"application\",service=~\"${service:pipe}\",exported_env=~\"$env\",host=~\"$host\",traffic=~\"${traffic:pipe}\",route=~\"${business:pipe}\",le=\"$slow_seconds\"}[$__range])), 0) or (0 * (min(up{job=\"application\",service=~\"${service:pipe}\",env=~\"$env\",host=~\"$host\"}) == 1)))",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "legendFormat": "",
+              "instant": true,
+              "range": false,
+              "format": "time_series"
             }
-          ]
+          ],
+          "options": {
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "colorMode": "value",
+            "graphMode": "none",
+            "textMode": "value",
+            "orientation": "horizontal",
+            "justifyMode": "center"
+          }
         },
-        "overrides": []
-      },
-      "targets": [
         {
-          "refId": "A",
-          "expr": "sum(max by (queue) (task_pending{job=\"application\",service=~\"${service:pipe}\",exported_env=~\"$env\",host=~\"$host\",service=\"huahuo-server\"} and on (env,service,role,instance,queue) (time() - task_backlog_observed_timestamp_seconds{job=\"application\",service=~\"${service:pipe}\",exported_env=~\"$env\",host=~\"$host\",service=\"huahuo-server\"} < 60)))",
+          "id": 10,
+          "title": "慢请求占比",
+          "type": "stat",
+          "gridPos": {
+            "x": 16,
+            "y": 28,
+            "w": 8,
+            "h": 4
+          },
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "legendFormat": "",
-          "instant": true,
-          "range": false,
-          "format": "time_series"
-        }
-      ],
-      "options": {
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "colorMode": "value",
-        "graphMode": "none",
-        "textMode": "value",
-        "orientation": "horizontal",
-        "justifyMode": "center"
-      }
-    },
-    {
-      "id": 27,
-      "title": "Server 任务终态 · 时段",
-      "type": "stat",
-      "gridPos": {
-        "x": 18,
-        "y": 37,
-        "w": 6,
-        "h": 4
-      },
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "description": "已提交的任务终态，不是处理尝试次数，也不是本时段创建任务的成功率。",
-      "fieldConfig": {
-        "defaults": {
-          "unit": "short",
-          "noValue": "无终态样本",
-          "color": {
-            "mode": "fixed",
-            "fixedColor": "blue"
+          "description": "当前 HTTP 类别中，严格超过顶部阈值的请求占全部已完成请求的比例；没有请求时留空。",
+          "fieldConfig": {
+            "defaults": {
+              "unit": "percent",
+              "noValue": "无请求",
+              "color": {
+                "mode": "fixed",
+                "fixedColor": "blue"
+              },
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              },
+              "decimals": 2,
+              "links": [
+                {
+                  "title": "查看当前类别的慢请求",
+                  "url": "/d/slow-requests?from=${__from}&to=${__to}&${env:queryparam}&${service:queryparam}&${traffic:queryparam}&${business:queryparam}&${host:queryparam}&var-role=%24__all&${slow_seconds:queryparam}",
+                  "oneClick": true
+                }
+              ]
+            },
+            "overrides": []
           },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              }
-            ]
-          },
-          "decimals": 0,
-          "links": [
+          "targets": [
             {
-              "title": "查看业务层详情",
-              "url": "/d/server-workloads?from=${__from}&to=${__to}&${env:queryparam}&${host:queryparam}",
-              "oneClick": true
+              "refId": "A",
+              "expr": "100 * (clamp_min(sum(increase(http_request_duration_seconds_count{job=\"application\",service=~\"${service:pipe}\",exported_env=~\"$env\",host=~\"$host\",traffic=~\"${traffic:pipe}\",route=~\"${business:pipe}\"}[$__range])) - sum(increase(http_request_duration_seconds_bucket{job=\"application\",service=~\"${service:pipe}\",exported_env=~\"$env\",host=~\"$host\",traffic=~\"${traffic:pipe}\",route=~\"${business:pipe}\",le=\"$slow_seconds\"}[$__range])), 0) or (0 * (min(up{job=\"application\",service=~\"${service:pipe}\",env=~\"$env\",host=~\"$host\"}) == 1))) / (sum(increase(http_request_duration_seconds_count{job=\"application\",service=~\"${service:pipe}\",exported_env=~\"$env\",host=~\"$host\",traffic=~\"${traffic:pipe}\",route=~\"${business:pipe}\"}[$__range])) > 0)",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "legendFormat": "",
+              "instant": true,
+              "range": false,
+              "format": "time_series"
             }
-          ]
+          ],
+          "options": {
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "colorMode": "value",
+            "graphMode": "none",
+            "textMode": "value",
+            "orientation": "horizontal",
+            "justifyMode": "center"
+          }
         },
-        "overrides": []
-      },
-      "targets": [
         {
-          "refId": "A",
-          "expr": "sum(increase(task_terminal_total{job=\"application\",service=~\"${service:pipe}\",exported_env=~\"$env\",host=~\"$host\",service=\"huahuo-server\"}[$__range]))",
+          "id": 21,
+          "title": "HTTP 类别占比 · 点击筛选",
+          "type": "piechart",
+          "gridPos": {
+            "x": 0,
+            "y": 32,
+            "w": 8,
+            "h": 8
+          },
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "legendFormat": "",
-          "instant": true,
-          "range": false,
-          "format": "time_series"
-        }
-      ],
-      "options": {
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
+          "description": "按应用上报的 traffic 分类，比较所选服务、环境、主机和时段的全部 HTTP 类别；不按 URL 猜分类。分类表示物理路由性质，不代表调用者来自公网或私网。旧版无 traffic 的历史指标不混入。点击扇区筛选并重置业务；顶部支持复选。",
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "noValue": "暂无数据",
+              "color": {
+                "mode": "palette-classic"
+              },
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              },
+              "min": 0,
+              "decimals": 0,
+              "links": [
+                {
+                  "title": "切换到这个 HTTP 类别",
+                  "url": "/d/monitoring-overview?from=${__from}&to=${__to}&${env:queryparam}&${host:queryparam}&${service:queryparam}&${slow_seconds:queryparam}&var-traffic=${__field.labels.scope_pattern:percentencode}&var-business=%24__all",
+                  "oneClick": true
+                }
+              ]
+            },
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "外部 API"
+                },
+                "properties": [
+                  {
+                    "id": "color",
+                    "value": {
+                      "mode": "fixed",
+                      "fixedColor": "blue"
+                    }
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "内部 API"
+                },
+                "properties": [
+                  {
+                    "id": "color",
+                    "value": {
+                      "mode": "fixed",
+                      "fixedColor": "purple"
+                    }
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "管理端"
+                },
+                "properties": [
+                  {
+                    "id": "color",
+                    "value": {
+                      "mode": "fixed",
+                      "fixedColor": "orange"
+                    }
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "其他 HTTP"
+                },
+                "properties": [
+                  {
+                    "id": "color",
+                    "value": {
+                      "mode": "fixed",
+                      "fixedColor": "gray"
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "expr": "label_replace(label_replace((sum(increase(http_requests_total{job=\"application\",service=~\"${service:pipe}\",exported_env=~\"$env\",host=~\"$host\",traffic=\"public\"}[$__range])) or (0 * (min(up{job=\"application\",service=~\"${service:pipe}\",env=~\"$env\",host=~\"$host\"}) == 1))),\"http_class\",\"外部 API\",\"__name__\",\".*\"),\"scope_pattern\",\"public\",\"__name__\",\".*\") or label_replace(label_replace((sum(increase(http_requests_total{job=\"application\",service=~\"${service:pipe}\",exported_env=~\"$env\",host=~\"$host\",traffic=\"internal\"}[$__range])) or (0 * (min(up{job=\"application\",service=~\"${service:pipe}\",env=~\"$env\",host=~\"$host\"}) == 1))),\"http_class\",\"内部 API\",\"__name__\",\".*\"),\"scope_pattern\",\"internal\",\"__name__\",\".*\") or label_replace(label_replace((sum(increase(http_requests_total{job=\"application\",service=~\"${service:pipe}\",exported_env=~\"$env\",host=~\"$host\",traffic=\"admin\"}[$__range])) or (0 * (min(up{job=\"application\",service=~\"${service:pipe}\",env=~\"$env\",host=~\"$host\"}) == 1))),\"http_class\",\"管理端\",\"__name__\",\".*\"),\"scope_pattern\",\"admin\",\"__name__\",\".*\") or label_replace(label_replace((sum(increase(http_requests_total{job=\"application\",service=~\"${service:pipe}\",exported_env=~\"$env\",host=~\"$host\",traffic=\"other\"}[$__range])) or (0 * (min(up{job=\"application\",service=~\"${service:pipe}\",env=~\"$env\",host=~\"$host\"}) == 1))),\"http_class\",\"其他 HTTP\",\"__name__\",\".*\"),\"scope_pattern\",\"other\",\"__name__\",\".*\")",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "legendFormat": "{{http_class}}",
+              "instant": true,
+              "range": false,
+              "format": "time_series"
+            }
           ],
-          "fields": "",
-          "values": false
+          "options": {
+            "pieType": "donut",
+            "displayLabels": [
+              "percent"
+            ],
+            "legend": {
+              "displayMode": "table",
+              "placement": "bottom",
+              "showLegend": true,
+              "values": [
+                "value",
+                "percent"
+              ]
+            },
+            "tooltip": {
+              "mode": "single",
+              "sort": "desc",
+              "hideZeros": false
+            },
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "values": false,
+              "fields": ""
+            }
+          }
         },
-        "colorMode": "value",
-        "graphMode": "none",
-        "textMode": "value",
-        "orientation": "horizontal",
-        "justifyMode": "center"
-      }
+        {
+          "id": 22,
+          "title": "业务请求占比 · 点击下钻",
+          "type": "piechart",
+          "gridPos": {
+            "x": 8,
+            "y": 32,
+            "w": 8,
+            "h": 8
+          },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "description": "按路由模块细分当前所选 HTTP 类别与业务，仅显示所选时段有请求增量的业务。图例显示模块、请求量和占比；点击扇区继续筛选该业务，顶部复选框支持多选。",
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "noValue": "暂无数据",
+              "color": {
+                "mode": "palette-classic"
+              },
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              },
+              "min": 0,
+              "decimals": 0,
+              "links": [
+                {
+                  "title": "查看这个业务的请求",
+                  "url": "/d/monitoring-overview?from=${__from}&to=${__to}&${env:queryparam}&${host:queryparam}&${service:queryparam}&${traffic:queryparam}&${slow_seconds:queryparam}&var-business=${__field.labels.business_pattern:percentencode}",
+                  "oneClick": true
+                }
+              ]
+            },
+            "overrides": []
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "expr": "sum by (business,business_pattern) (label_replace((label_replace((label_replace((label_replace((label_replace((label_replace((label_replace((label_replace((label_replace((label_replace((label_replace((label_replace((label_replace((label_replace((label_replace((label_replace((label_replace((label_replace((label_replace((label_replace((label_replace((label_replace((increase(http_requests_total{job=\"application\",service=~\"${service:pipe}\",exported_env=~\"$env\",host=~\"$host\",traffic=~\"${traffic:pipe}\",route=~\"${business:pipe}\"}[$__range])),\"business\",\"$1\",\"route\",\"(.*)\")),\"business_pattern\",\"$1\",\"route\",\"(.*)\")),\"business\",\"$2\",\"route\",\"/(api|internal|admin/api)/v[0-9]+/([^/]+)(/.*)?\")),\"business_pattern\",\"/(api|internal|admin/api)/v[0-9]+/$2(/.*)?\",\"route\",\"/(api|internal|admin/api)/v[0-9]+/([^/]+)(/.*)?\")),\"business\",\"管理页面与资源\",\"route\",\"/admin(/assets/.*)?\")),\"business_pattern\",\"/admin(/assets/.*)?\",\"route\",\"/admin(/assets/.*)?\")),\"business\",\"未匹配路径\",\"route\",\"unmatched\")),\"business\",\"Agent 对话与运行\",\"route\",\"/api/agents(/.*)?\")),\"business_pattern\",\"/api/agents(/.*)?\",\"route\",\"/api/agents(/.*)?\")),\"business\",\"Agent 登录认证\",\"route\",\"/(studio-auth|api/auth)(/.*)?\")),\"business_pattern\",\"/(studio-auth|api/auth)(/.*)?\",\"route\",\"/(studio-auth|api/auth)(/.*)?\")),\"business\",\"其他 HTTP\",\"route\",\"/other\")),\"business_pattern\",\"/other\",\"route\",\"/other\")),\"business\",\"网关鉴权\",\"business\",\"gateway\")),\"business\",\"账号认证\",\"business\",\"auth\")),\"business\",\"用户信息\",\"business\",\"me\")),\"business\",\"系统配置\",\"business\",\"configuration\")),\"business\",\"文档调试\",\"business\",\"document-trials\")),\"business\",\"处理节点\",\"business\",\"processing-nodes\")),\"business\",\"文档解析\",\"business\",\"document-parser\")),\"business\",\"管理端登录\",\"business\",\"login\")),\"business\",\"管理端登出\",\"business\",\"logout\")) > 0",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "legendFormat": "{{business}}",
+              "instant": true,
+              "range": false,
+              "format": "time_series"
+            }
+          ],
+          "options": {
+            "pieType": "donut",
+            "displayLabels": [
+              "percent"
+            ],
+            "legend": {
+              "displayMode": "table",
+              "placement": "bottom",
+              "showLegend": true,
+              "values": [
+                "value",
+                "percent"
+              ]
+            },
+            "tooltip": {
+              "mode": "single",
+              "sort": "desc",
+              "hideZeros": false
+            },
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "values": false,
+              "fields": ""
+            }
+          }
+        },
+        {
+          "id": 7,
+          "title": "响应状态码 · 所选类别",
+          "type": "bargauge",
+          "gridPos": {
+            "x": 16,
+            "y": 32,
+            "w": 8,
+            "h": 8
+          },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "description": "所选时段内，当前 HTTP 类别各响应状态码的请求数；按数量降序。",
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "noValue": "暂无数据",
+              "color": {
+                "mode": "palette-classic"
+              },
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              },
+              "min": 0,
+              "decimals": 0
+            },
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byRegexp",
+                  "options": "^2[0-9][0-9]$"
+                },
+                "properties": [
+                  {
+                    "id": "color",
+                    "value": {
+                      "mode": "fixed",
+                      "fixedColor": "green"
+                    }
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byRegexp",
+                  "options": "^3[0-9][0-9]$"
+                },
+                "properties": [
+                  {
+                    "id": "color",
+                    "value": {
+                      "mode": "fixed",
+                      "fixedColor": "blue"
+                    }
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byRegexp",
+                  "options": "^4[0-9][0-9]$"
+                },
+                "properties": [
+                  {
+                    "id": "color",
+                    "value": {
+                      "mode": "fixed",
+                      "fixedColor": "orange"
+                    }
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byRegexp",
+                  "options": "^5[0-9][0-9]$"
+                },
+                "properties": [
+                  {
+                    "id": "color",
+                    "value": {
+                      "mode": "fixed",
+                      "fixedColor": "red"
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "expr": "sort_desc(sum by (status) (increase(http_requests_total{job=\"application\",service=~\"${service:pipe}\",exported_env=~\"$env\",host=~\"$host\",traffic=~\"${traffic:pipe}\",route=~\"${business:pipe}\"}[$__range])) > 0)",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "legendFormat": "{{status}}",
+              "instant": true,
+              "range": false,
+              "format": "time_series"
+            }
+          ],
+          "options": {
+            "orientation": "horizontal",
+            "displayMode": "basic",
+            "valueMode": "color",
+            "namePlacement": "left",
+            "showUnfilled": false,
+            "minVizHeight": 24,
+            "maxVizHeight": 52,
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "values": false,
+              "fields": ""
+            }
+          }
+        },
+        {
+          "id": 11,
+          "title": "慢请求速率 · 5分钟均值",
+          "type": "timeseries",
+          "gridPos": {
+            "x": 0,
+            "y": 40,
+            "w": 10,
+            "h": 8
+          },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "description": "当前 HTTP 类别中严格超过顶部阈值的已完成请求，按角色堆叠；显示此前 5 分钟的每分钟平均速率。长连接耗时需结合接口用途判断。",
+          "fieldConfig": {
+            "defaults": {
+              "unit": "suffix:次/分",
+              "noValue": "暂无数据",
+              "color": {
+                "mode": "palette-classic"
+              },
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              },
+              "min": 0,
+              "custom": {
+                "drawStyle": "bars",
+                "lineInterpolation": "linear",
+                "lineWidth": 0,
+                "fillOpacity": 85,
+                "showPoints": "never",
+                "spanNulls": false,
+                "axisBorderShow": false,
+                "axisPlacement": "auto",
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "barAlignment": 0,
+                "stacking": {
+                  "mode": "normal",
+                  "group": "requests"
+                },
+                "axisSoftMax": 1
+              }
+            },
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "api-server"
+                },
+                "properties": [
+                  {
+                    "id": "displayName",
+                    "value": "API 服务"
+                  },
+                  {
+                    "id": "color",
+                    "value": {
+                      "mode": "fixed",
+                      "fixedColor": "blue"
+                    }
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "admin"
+                },
+                "properties": [
+                  {
+                    "id": "displayName",
+                    "value": "管理端"
+                  },
+                  {
+                    "id": "color",
+                    "value": {
+                      "mode": "fixed",
+                      "fixedColor": "purple"
+                    }
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "worker"
+                },
+                "properties": [
+                  {
+                    "id": "displayName",
+                    "value": "后台处理"
+                  },
+                  {
+                    "id": "color",
+                    "value": {
+                      "mode": "fixed",
+                      "fixedColor": "green"
+                    }
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "scheduler"
+                },
+                "properties": [
+                  {
+                    "id": "displayName",
+                    "value": "定时任务"
+                  },
+                  {
+                    "id": "color",
+                    "value": {
+                      "mode": "fixed",
+                      "fixedColor": "orange"
+                    }
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "agent"
+                },
+                "properties": [
+                  {
+                    "id": "displayName",
+                    "value": "Agent"
+                  },
+                  {
+                    "id": "color",
+                    "value": {
+                      "mode": "fixed",
+                      "fixedColor": "red"
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "expr": "60 * clamp_min(sum by (role)(rate(http_request_duration_seconds_count{job=\"application\",service=~\"${service:pipe}\",exported_env=~\"$env\",host=~\"$host\",traffic=~\"${traffic:pipe}\",route=~\"${business:pipe}\"}[5m])) - sum by (role)(rate(http_request_duration_seconds_bucket{job=\"application\",service=~\"${service:pipe}\",exported_env=~\"$env\",host=~\"$host\",traffic=~\"${traffic:pipe}\",route=~\"${business:pipe}\",le=\"$slow_seconds\"}[5m])), 0)",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "legendFormat": "{{role}}",
+              "instant": false,
+              "range": true,
+              "format": "time_series"
+            }
+          ],
+          "options": {
+            "legend": {
+              "displayMode": "list",
+              "placement": "bottom",
+              "calcs": []
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            }
+          }
+        },
+        {
+          "id": 12,
+          "title": "慢接口排行 · 点击查看单次请求",
+          "type": "table",
+          "gridPos": {
+            "x": 10,
+            "y": 40,
+            "w": 14,
+            "h": 8
+          },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "description": "按当前 HTTP 类别内的慢请求次数降序，最多 10 行。点击接口或数量，查看日志覆盖范围与已保留的逐条请求。",
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "noValue": "暂无数据",
+              "color": {
+                "mode": "palette-classic"
+              },
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              },
+              "decimals": 0,
+              "custom": {
+                "align": "left",
+                "cellOptions": {
+                  "type": "auto"
+                }
+              }
+            },
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "角色"
+                },
+                "properties": [
+                  {
+                    "id": "mappings",
+                    "value": [
+                      {
+                        "type": "value",
+                        "options": {
+                          "api-server": {
+                            "text": "API 服务"
+                          },
+                          "admin": {
+                            "text": "管理端"
+                          },
+                          "worker": {
+                            "text": "后台处理"
+                          },
+                          "scheduler": {
+                            "text": "定时任务"
+                          },
+                          "agent": {
+                            "text": "Agent"
+                          }
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "id": "custom.width",
+                    "value": 120
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "服务"
+                },
+                "properties": [
+                  {
+                    "id": "mappings",
+                    "value": [
+                      {
+                        "type": "value",
+                        "options": {
+                          "huahuo-server": {
+                            "text": "Server"
+                          },
+                          "huahuo-agent": {
+                            "text": "Agent"
+                          }
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "id": "custom.width",
+                    "value": 110
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "接口"
+                },
+                "properties": [
+                  {
+                    "id": "links",
+                    "value": [
+                      {
+                        "title": "查看这个接口的慢请求详情",
+                        "url": "/d/http-request-details?from=${__from}&to=${__to}&${env:queryparam}&var-service=${__data.fields[\"服务标识\"]:percentencode}&${traffic:queryparam}&${business:queryparam}&var-role=${__data.fields[\"角色标识\"]:percentencode}&var-host=${__data.fields[\"主机\"]:percentencode}&var-method=${__data.fields[\"方法\"]:percentencode}&var-route=${__data.fields[\"接口\"]:percentencode}&${slow_seconds:queryparam}&var-request_mode=slow",
+                        "oneClick": true
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "慢请求数"
+                },
+                "properties": [
+                  {
+                    "id": "links",
+                    "value": [
+                      {
+                        "title": "查看这个接口的慢请求详情",
+                        "url": "/d/http-request-details?from=${__from}&to=${__to}&${env:queryparam}&var-service=${__data.fields[\"服务标识\"]:percentencode}&${traffic:queryparam}&${business:queryparam}&var-role=${__data.fields[\"角色标识\"]:percentencode}&var-host=${__data.fields[\"主机\"]:percentencode}&var-method=${__data.fields[\"方法\"]:percentencode}&var-route=${__data.fields[\"接口\"]:percentencode}&${slow_seconds:queryparam}&var-request_mode=slow",
+                        "oneClick": true
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "角色标识"
+                },
+                "properties": [
+                  {
+                    "id": "custom.hidden",
+                    "value": true
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "服务标识"
+                },
+                "properties": [
+                  {
+                    "id": "custom.hidden",
+                    "value": true
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "方法"
+                },
+                "properties": [
+                  {
+                    "id": "custom.width",
+                    "value": 75
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "慢请求数"
+                },
+                "properties": [
+                  {
+                    "id": "custom.width",
+                    "value": 160
+                  },
+                  {
+                    "id": "color",
+                    "value": {
+                      "mode": "fixed",
+                      "fixedColor": "orange"
+                    }
+                  },
+                  {
+                    "id": "custom.cellOptions",
+                    "value": {
+                      "type": "gauge",
+                      "mode": "basic",
+                      "valueDisplayMode": "text"
+                    }
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "主机"
+                },
+                "properties": [
+                  {
+                    "id": "custom.hidden",
+                    "value": true
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "角色"
+                },
+                "properties": [
+                  {
+                    "id": "custom.width",
+                    "value": 100
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "方法"
+                },
+                "properties": [
+                  {
+                    "id": "custom.width",
+                    "value": 60
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "慢请求数"
+                },
+                "properties": [
+                  {
+                    "id": "custom.width",
+                    "value": 100
+                  }
+                ]
+              }
+            ]
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "expr": "topk(10, label_replace(label_replace(clamp_min(sum by (service,role,host,method,route)(increase(http_request_duration_seconds_count{job=\"application\",service=~\"${service:pipe}\",exported_env=~\"$env\",host=~\"$host\",traffic=~\"${traffic:pipe}\",route=~\"${business:pipe}\"}[$__range])) - sum by (service,role,host,method,route)(increase(http_request_duration_seconds_bucket{job=\"application\",service=~\"${service:pipe}\",exported_env=~\"$env\",host=~\"$host\",traffic=~\"${traffic:pipe}\",route=~\"${business:pipe}\",le=\"$slow_seconds\"}[$__range])), 0) > 0,\"role_key\",\"$1\",\"role\",\"(.+)\"),\"service_key\",\"$1\",\"service\",\"(.+)\"))",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "legendFormat": "",
+              "instant": true,
+              "range": false,
+              "format": "table"
+            }
+          ],
+          "options": {
+            "showHeader": true,
+            "cellHeight": "md",
+            "sortBy": [
+              {
+                "displayName": "慢请求数",
+                "desc": true
+              }
+            ],
+            "footer": {
+              "show": false
+            }
+          },
+          "transformations": [
+            {
+              "id": "filterFieldsByName",
+              "options": {
+                "include": {
+                  "names": [
+                    "service",
+                    "service_key",
+                    "role",
+                    "role_key",
+                    "host",
+                    "method",
+                    "route",
+                    "Value"
+                  ]
+                }
+              }
+            },
+            {
+              "id": "organize",
+              "options": {
+                "excludeByName": {},
+                "indexByName": {
+                  "service": 0,
+                  "service_key": 1,
+                  "role": 2,
+                  "role_key": 3,
+                  "host": 4,
+                  "method": 5,
+                  "route": 6,
+                  "Value": 7
+                },
+                "renameByName": {
+                  "service": "服务",
+                  "service_key": "服务标识",
+                  "role": "角色",
+                  "role_key": "角色标识",
+                  "host": "主机",
+                  "method": "方法",
+                  "route": "接口",
+                  "Value": "慢请求数"
+                }
+              }
+            }
+          ]
+        }
+      ]
     }
   ],
   "links": [
@@ -2508,6 +2517,15 @@
       "url": "/d/prometheus-health",
       "keepTime": true,
       "includeVars": true
+    },
+    {
+      "title": "Kubernetes",
+      "type": "dashboards",
+      "tags": [
+        "Kubernetes"
+      ],
+      "asDropdown": false,
+      "keepTime": true
     }
   ]
 }

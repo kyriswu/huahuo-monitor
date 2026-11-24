@@ -3,7 +3,8 @@
   "title": "Kubernetes 工作负载",
   "description": "查看监控和业务命名空间的 Pod、容器重启、工作负载副本与 Kubernetes 告警事件。",
   "tags": [
-    "平台运维"
+    "平台运维",
+    "Kubernetes"
   ],
   "timezone": "browser",
   "schemaVersion": 39,

@@ -16,6 +16,8 @@ targets/apps.yml 配置五个业务实例。Prometheus 直接抓取每个进程�
 
 目标与应用同时提供 env/service/role，honor_labels=false 会保留应用值为 exported_env/exported_service/exported_role。业务查询使用 exported_env，up 按目标静态 env/role 查询，避免应用指标过期后离线目标消失。service 与 role 不互相替代，不将临时容器 ID 当主机名。
 
+HTTP 看板没有计数样本时，只在所选范围内已有目标且全部抓取成功的情况下补零。5xx 比例要求所选时段内有已完成请求。首页的“抓取失败目标”只统计已发现的目标，所选范围内没有目标时显示“未发现目标”。Kubernetes 的预期副本和实际可用副本在工作负载看板查看。
+
 规范资源标签是 env/service/role；version、service_instance_id 只在 application_info 及日志/OTel resource 中。当前未上报蓝绿 slot、部署 commit 或主机磁盘硬件指标，不能用进程 UUID 或 package 版本推断蓝绿发布状态。
 
 ## HTTP contract v1

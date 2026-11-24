@@ -13,7 +13,8 @@ DS = {'type': 'prometheus', 'uid': 'prometheus'}
 LOKI = {'type': 'loki', 'uid': 'loki'}
 APP = 'job="application",service=~"${service:pipe}",exported_env=~"$env",host=~"$host"'
 HTTP_APP = APP + ',traffic=~"${traffic:pipe}",route=~"${business:pipe}"'
-TARGET = 'job="application",service=~"${service:pipe}",env=~"$env",host=~"$host"'
+TARGET_SCOPE = 'job="application",service=~"${service:pipe}",env=~"$env"'
+TARGET = TARGET_SCOPE + ',host=~"$host"'
 ROLE = ',role=~"$role"'
 ROLES = {'api-server': 'API 服务', 'admin': '管理端', 'worker': '后台处理', 'scheduler': '定时任务', 'agent': 'Agent'}
 COLORS = {'api-server': 'blue', 'admin': 'purple', 'worker': 'green', 'scheduler': 'orange', 'agent': 'red'}
@@ -120,7 +121,7 @@ def variables(with_role=False):
                'includeAll': True, 'allValue': 'huahuo-server|huahuo-agent',
                'current': {'selected': True, 'text': ['All'], 'value': ['$__all']},
                'options': [{'text': 'Server', 'value': 'huahuo-server'}, {'text': 'Agent', 'value': 'huahuo-agent'}]},
-              variable('host', '主机', 'label_values(application_info{' + APP + '}, host)')]
+              variable('host', '主机', 'label_values(up{' + TARGET_SCOPE + '}, host)')]
     if with_role:
         result.append(variable('role', '角色', 'label_values(up{' + TARGET + '}, role)'))
     result.extend([scope_variable(DS), business_variable(APP, DS)])
@@ -148,6 +149,9 @@ def dashboard_links(uid):
         items = [http, agent, server, platform]
     result = [{'title': title, 'type': 'link', 'url': url, 'keepTime': True, 'includeVars': True}
               for title, url in items if url.split('?')[0] != '/d/' + uid]
+    if uid in ('monitoring-overview', 'prometheus-health'):
+        result.append({'title': 'Kubernetes', 'type': 'dashboards', 'tags': ['Kubernetes'],
+                       'asDropdown': False, 'keepTime': True})
     if uid != 'monitoring-overview':
         result.append({'title': 'Grafana Explore', 'type': 'link', 'url': '/explore', 'targetBlank': True})
     return result
@@ -157,7 +161,10 @@ def save(uid, title, panels, folder, vars=None, description=''):
     # Investigation pages query on open/filter/manual refresh, not on a timer.
     refresh = ('' if uid in ('http-errors', 'slow-requests', 'http-request-details', 'database-slow-sql')
                else '1m') if LIGHT_MODE else '30s'
-    dashboard = {'uid': uid, 'title': title, 'description': description, 'tags': ['花火AI' if folder == 'business' else '平台运维'],
+    tags = ['花火AI'] if folder == 'business' else ['平台运维']
+    if folder == 'kubernetes':
+        tags.append('Kubernetes')
+    dashboard = {'uid': uid, 'title': title, 'description': description, 'tags': tags,
                  'timezone': 'browser', 'schemaVersion': 39, 'version': 2, 'editable': False,
                  'graphTooltip': 1, 'refresh': refresh, 'time': {'from': 'now-6h', 'to': 'now'},
                  'timepicker': {'refresh_intervals': ['1m', '5m', '15m'] if LIGHT_MODE else ['30s', '1m', '5m']},
@@ -186,7 +193,8 @@ def request_count(sel=HTTP_APP):
 
 
 def zero(sel=TARGET):
-    return f'(0 * count(up{{{sel}}}))'
+    """Seed an idle counter only when all discovered targets in scope are up."""
+    return f'(0 * (min(up{{{sel}}}) == 1))'
 
 
 def errors(sel=HTTP_APP, base=TARGET):
@@ -545,26 +553,28 @@ if LOGS_ENABLED:
 
 
 from http_overview import build_http_overview
-overview = build_http_overview(panel, table, field, query, semantic, thresholds, request_bars,
-                               latency_line, click_link, DS, APP, HTTP_APP, TARGET,
-                               request_count, zero, errors, p95, slow_count, slow_url,
+overview = build_http_overview(panel, table, field, query, semantic, request_bars,
+                               latency_line, click_link, APP, HTTP_APP, TARGET,
+                               request_count, zero, p95, slow_count, slow_url,
                                error_url, slow_table, SCOPES, classify_business)
 
 # Project entry points summarize business layers without mixing their counters.
 agent_sel = APP + ',service="huahuo-agent"'
 server_sel = APP + ',service="huahuo-server"'
-fresh = f'(time() - task_backlog_observed_timestamp_seconds{{{server_sel}}} < 60)'
-pending = f'sum(max by (queue) (task_pending{{{server_sel}}} and on (env,service,role,instance,queue) {fresh}))'
+scheduler_sel = server_sel + ',role="scheduler"'
+fresh = f'(time() - task_backlog_observed_timestamp_seconds{{{scheduler_sel}}} < 60)'
+oldest = (f'max(task_oldest_waiting_seconds{{{scheduler_sel}}} '
+          f'and on (job,instance,exported_env,service,role,queue) {fresh})')
 summary = [
-    panel(24, 'Agent 运行终态 · 时段', 'stat', (0, 37, 6, 4),
+    panel(24, 'Agent 运行终态 · 时段', 'stat', (0, 13, 6, 4),
           f'sum(increase(agent_runs_total{{{agent_sel}}}[$__range]))',
           description='原生运行终态的采样增量，不与 HTTP、执行段或模型调用相加。只含开始抓取后的增量。', no_value='无终态样本'),
-    panel(25, 'Agent 首文本 P95', 'stat', (6, 37, 6, 4),
+    panel(25, 'Agent 首文本 P95', 'stat', (6, 13, 6, 4),
           f'histogram_quantile(0.95,sum by (le) (increase(agent_time_to_first_text_seconds_bucket{{{agent_sel}}}[$__range])))', 's',
           '初始运行开始到第一个非空文本，包含工具等待；非 HTTP/SSE 生命周期。', no_value='无首文本样本'),
-    panel(26, 'Server 可调度任务', 'stat', (12, 37, 6, 4), pending,
-          description='先剔除超过 60 秒未更新的快照，再对共享队列取 max，避免多 Scheduler 重复累加。', no_value='无新鲜队列快照'),
-    panel(27, 'Server 任务终态 · 时段', 'stat', (18, 37, 6, 4),
+    panel(26, '最老可执行任务等待', 'stat', (12, 13, 6, 4), oldest, 's',
+          'Server 各队列中已到期任务的最长等待时间，仅取 60 秒内更新的快照。', no_value='无新鲜队列快照'),
+    panel(27, 'Server 任务终态 · 时段', 'stat', (18, 13, 6, 4),
           f'sum(increase(task_terminal_total{{{server_sel}}}[$__range]))',
           description='已提交的任务终态，不是处理尝试次数，也不是本时段创建任务的成功率。', no_value='无终态样本')]
 summary[1]['fieldConfig']['defaults']['decimals'] = 2
@@ -572,9 +582,10 @@ for i,p in enumerate(summary):
     click_link(p, '查看业务层详情', ('/d/agent-runtime' if i < 2 else '/d/server-workloads') +
                '?from=${__from}&to=${__to}&${env:queryparam}&${host:queryparam}')
 overview.extend([{'id': 23, 'title': '业务层概况 · 点击进入 Agent / Server', 'type': 'row',
-                 'collapsed': False, 'gridPos': {'x': 0, 'y': 36, 'w': 24, 'h': 1}}] + summary)
+                 'collapsed': False, 'gridPos': {'x': 0, 'y': 12, 'w': 24, 'h': 1}}] + summary)
+overview.sort(key=lambda item: (item['gridPos']['y'], item['gridPos']['x']))
 save('monitoring-overview', '花火AI 服务总览', overview, 'business', variables() + [deepcopy(next(v for v in slow_vars if v['name'] == 'slow_seconds'))],
-     '勾选 HTTP 类别与业务，通过两级环形图查看请求分布；请求量、QPS、QPM、状态码和延迟同步筛选。')
+     '查看 HTTP 流量、5xx 比例、P95 耗时和采集状态，并进入 Agent、Server 或平台看板继续排查。')
 
 
 platform = [

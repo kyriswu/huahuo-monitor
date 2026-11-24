@@ -3,11 +3,10 @@
 
 def build_database_dashboard(save, panel, field, DS, LOKI, log_limit=500):
     """Use the dashboard builder's common appearance and provisioning helpers."""
-    instance = 'pgm-2ze7o54d25m8kn53'
-    database = 'huahuo'
     prom_selector = 'job="monitoring",service="rds-slow-logs",env=~"$env"'
-    selector = ('{service="rds-slow-sql",env=~"$env",'
-                f'rds_instance="{instance}",database="{database}"' + '}')
+    env_labels = 'service="rds-slow-sql",env=~"$env"'
+    instance_labels = env_labels + ',rds_instance=~"$rds_instance"'
+    selector = '{' + instance_labels + ',database=~"$database"}'
     logs = (selector + ' | json | __error__="" | probe="$probe"'
             ' | query_id=~"${query_id:raw}"')
     unwrapped = logs + ' | unwrap elapsed_ms | __error__=""'
@@ -25,6 +24,13 @@ def build_database_dashboard(save, panel, field, DS, LOKI, log_limit=500):
         p['targets'] = [loki_target(expr, instant=kind in ('stat', 'table'))]
         return p
 
+    def label_variable(name, label, stream_labels):
+        return {'name': name, 'label': label, 'type': 'query', 'datasource': LOKI,
+                'query': {'type': 1, 'label': name, 'stream': '{' + stream_labels + '}',
+                          'refId': 'LokiVariableQueryEditor-VariableQuery'},
+                'refresh': 2, 'multi': True, 'includeAll': True, 'allValue': '.*', 'sort': 1,
+                'current': {'selected': True, 'text': 'All', 'value': '$__all'}, 'options': []}
+
     variables = [
         {'name': 'env', 'label': '环境', 'type': 'query', 'datasource': DS,
          'query': {'query': 'label_values(up{job="monitoring",service="rds-slow-logs"},env)',
@@ -32,6 +38,8 @@ def build_database_dashboard(save, panel, field, DS, LOKI, log_limit=500):
          'definition': 'label_values(up{job="monitoring",service="rds-slow-logs"},env)',
          'refresh': 1, 'multi': True, 'includeAll': True, 'allValue': '.*', 'sort': 1,
          'current': {'selected': True, 'text': ['test'], 'value': ['test']}, 'options': []},
+        label_variable('rds_instance', 'RDS 实例', env_labels),
+        label_variable('database', '数据库', instance_labels),
         {'name': 'probe', 'label': '数据范围', 'type': 'custom', 'multi': False,
          'query': '业务慢SQL : false,验证探针 : true',
          'current': {'selected': True, 'text': '业务慢SQL', 'value': 'false'},
@@ -46,7 +54,7 @@ def build_database_dashboard(save, panel, field, DS, LOKI, log_limit=500):
         1, '慢日志同步状态', 'stat', (0, 0, 6, 4),
         f'up{{{prom_selector}}} * '
         f'(time() - rds_slow_logs_last_success_timestamp_seconds{{{prom_selector}}} < bool 180)',
-        description='状态取所选时间范围的结束时刻：采集器可访问，且此前 3 分钟成功同步 RDS 慢日志。结束时刻早于本次接入时会无数据，请切换到最近 6 小时或将结束时间设为 now。RDS 明细本身可能有分钟级延迟。',
+        description='检查所选环境的采集器。正常表示在时间范围结束时刻可访问，且此前 3 分钟成功同步 RDS 慢日志。请切换到最近 6 小时或将结束时间设为 now 来查看当前状态。',
         no_value='所选时刻无状态')
     collector_state['fieldConfig']['defaults'].update({
         'color': {'mode': 'thresholds'},
@@ -97,6 +105,7 @@ def build_database_dashboard(save, panel, field, DS, LOKI, log_limit=500):
                        'sortBy': [{'displayName': '记录总耗时', 'desc': True}], 'footer': {'show': False}}
     rank['fieldConfig']['defaults'].update({'decimals': 0, 'custom': {'align': 'left', 'cellOptions': {'type': 'auto'}}})
     focus = ('/d/database-slow-sql?from=${__from}&to=${__to}&${env:queryparam}'
+             '&${rds_instance:queryparam}&${database:queryparam}'
              '&${probe:queryparam}&var-query_id=${__data.fields["SQL 标识"]:percentencode}&viewPanel=8')
     for name in ['SQL 标识', 'SQL 摘要', '记录总耗时']:
         field(rank, name, {'links': [{'title': '查看该 SQL 的逐条慢日志', 'url': focus, 'oneClick': True}]})
@@ -126,7 +135,8 @@ def build_database_dashboard(save, panel, field, DS, LOKI, log_limit=500):
     panels.append({'id': 9, 'title': '数据范围与查看方式', 'type': 'text',
                    'gridPos': {'x': 0, 'y': 22, 'w': 24, 'h': 3},
                    'options': {'mode': 'markdown', 'content':
-                       '**RDS PostgreSQL / huahuo**：数据库记录耗时达到 **1 秒** 的 SQL，采集器每分钟同步，云端明细存在延迟。'
+                       '先按环境、RDS 实例和数据库选择查看范围。实例和数据库选项来自所选时段已采集的慢日志。'
+                       '慢 SQL 阈值由 RDS 配置，采集器每分钟同步，云端明细存在延迟。'
                        '默认仅显示 **业务慢SQL**，验证探针单独查看。没有符合条件的记录时，统计为 0、排行为空。'
                        f'排行使用所选范围已采集的全部记录；下方明细最多最近 {log_limit} 条，日志保留 72 小时。'
                        'SQL 字面值和注释已脱敏；当前尚未接入 HTTP traceId 与 SQL 的关联。'}})

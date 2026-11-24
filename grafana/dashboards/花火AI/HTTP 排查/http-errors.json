@@ -93,10 +93,10 @@
           "uid": "prometheus"
         },
         "query": {
-          "query": "label_values(application_info{job=\"application\",service=~\"${service:pipe}\",exported_env=~\"$env\",host=~\"$host\"}, host)",
+          "query": "label_values(up{job=\"application\",service=~\"${service:pipe}\",env=~\"$env\"}, host)",
           "refId": "StandardVariableQuery"
         },
-        "definition": "label_values(application_info{job=\"application\",service=~\"${service:pipe}\",exported_env=~\"$env\",host=~\"$host\"}, host)",
+        "definition": "label_values(up{job=\"application\",service=~\"${service:pipe}\",env=~\"$env\"}, host)",
         "refresh": 1,
         "multi": true,
         "includeAll": true,
@@ -378,7 +378,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "sum(increase(http_requests_total{job=\"application\",service=~\"${service:pipe}\",exported_env=~\"$env\",host=~\"$host\",traffic=~\"${traffic:pipe}\",route=~\"${business:pipe}\",role=~\"$role\",status=~\"$status\",method=~\"$method\",route=~\"$route\"}[$__range])) or (0 * count(up{job=\"application\",service=~\"${service:pipe}\",env=~\"$env\",host=~\"$host\",role=~\"$role\"}))",
+          "expr": "sum(increase(http_requests_total{job=\"application\",service=~\"${service:pipe}\",exported_env=~\"$env\",host=~\"$host\",traffic=~\"${traffic:pipe}\",route=~\"${business:pipe}\",role=~\"$role\",status=~\"$status\",method=~\"$method\",route=~\"$route\"}[$__range])) or (0 * (min(up{job=\"application\",service=~\"${service:pipe}\",env=~\"$env\",host=~\"$host\",role=~\"$role\"}) == 1))",
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus"
@@ -443,7 +443,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "count(count by (method,route) (sum by (service,status,role,host,method,route) (increase(http_requests_total{job=\"application\",service=~\"${service:pipe}\",exported_env=~\"$env\",host=~\"$host\",traffic=~\"${traffic:pipe}\",route=~\"${business:pipe}\",role=~\"$role\",status=~\"$status\",method=~\"$method\",route=~\"$route\"}[$__range])) > 0)) or (0 * count(up{job=\"application\",service=~\"${service:pipe}\",env=~\"$env\",host=~\"$host\",role=~\"$role\"}))",
+          "expr": "count(count by (method,route) (sum by (service,status,role,host,method,route) (increase(http_requests_total{job=\"application\",service=~\"${service:pipe}\",exported_env=~\"$env\",host=~\"$host\",traffic=~\"${traffic:pipe}\",route=~\"${business:pipe}\",role=~\"$role\",status=~\"$status\",method=~\"$method\",route=~\"$route\"}[$__range])) > 0)) or (0 * (min(up{job=\"application\",service=~\"${service:pipe}\",env=~\"$env\",host=~\"$host\",role=~\"$role\"}) == 1))",
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus"
@@ -508,7 +508,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "count(count by (role) (sum by (service,status,role,host,method,route) (increase(http_requests_total{job=\"application\",service=~\"${service:pipe}\",exported_env=~\"$env\",host=~\"$host\",traffic=~\"${traffic:pipe}\",route=~\"${business:pipe}\",role=~\"$role\",status=~\"$status\",method=~\"$method\",route=~\"$route\"}[$__range])) > 0)) or (0 * count(up{job=\"application\",service=~\"${service:pipe}\",env=~\"$env\",host=~\"$host\",role=~\"$role\"}))",
+          "expr": "count(count by (role) (sum by (service,status,role,host,method,route) (increase(http_requests_total{job=\"application\",service=~\"${service:pipe}\",exported_env=~\"$env\",host=~\"$host\",traffic=~\"${traffic:pipe}\",route=~\"${business:pipe}\",role=~\"$role\",status=~\"$status\",method=~\"$method\",route=~\"$route\"}[$__range])) > 0)) or (0 * (min(up{job=\"application\",service=~\"${service:pipe}\",env=~\"$env\",host=~\"$host\",role=~\"$role\"}) == 1))",
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus"
@@ -613,7 +613,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "label_join(sum by (status,service,role,method,route) (increase(http_requests_total{job=\"application\",service=~\"${service:pipe}\",exported_env=~\"$env\",host=~\"$host\",traffic=~\"${traffic:pipe}\",route=~\"${business:pipe}\",role=~\"$role\",status=~\"5..\",method=~\"$method\",route=~\"$route\"}[$__range])) > 0,\"request\",\" · \",\"service\",\"role\",\"method\",\"route\") or label_replace(label_replace((0 * count(up{job=\"application\",service=~\"${service:pipe}\",env=~\"$env\",host=~\"$host\",role=~\"$role\"})),\"status\",\"500\",\"__name__\",\".*\"),\"request\",\"暂无记录\",\"status\",\".*\") or label_replace(label_replace((0 * count(up{job=\"application\",service=~\"${service:pipe}\",env=~\"$env\",host=~\"$host\",role=~\"$role\"})),\"status\",\"501\",\"__name__\",\".*\"),\"request\",\"暂无记录\",\"status\",\".*\") or label_replace(label_replace((0 * count(up{job=\"application\",service=~\"${service:pipe}\",env=~\"$env\",host=~\"$host\",role=~\"$role\"})),\"status\",\"502\",\"__name__\",\".*\"),\"request\",\"暂无记录\",\"status\",\".*\") or label_replace(label_replace((0 * count(up{job=\"application\",service=~\"${service:pipe}\",env=~\"$env\",host=~\"$host\",role=~\"$role\"})),\"status\",\"503\",\"__name__\",\".*\"),\"request\",\"暂无记录\",\"status\",\".*\") or label_replace(label_replace((0 * count(up{job=\"application\",service=~\"${service:pipe}\",env=~\"$env\",host=~\"$host\",role=~\"$role\"})),\"status\",\"504\",\"__name__\",\".*\"),\"request\",\"暂无记录\",\"status\",\".*\")",
+          "expr": "label_join(sum by (status,service,role,method,route) (increase(http_requests_total{job=\"application\",service=~\"${service:pipe}\",exported_env=~\"$env\",host=~\"$host\",traffic=~\"${traffic:pipe}\",route=~\"${business:pipe}\",role=~\"$role\",status=~\"5..\",method=~\"$method\",route=~\"$route\"}[$__range])) > 0,\"request\",\" · \",\"service\",\"role\",\"method\",\"route\") or label_replace(label_replace((0 * (min(up{job=\"application\",service=~\"${service:pipe}\",env=~\"$env\",host=~\"$host\",role=~\"$role\"}) == 1)),\"status\",\"500\",\"__name__\",\".*\"),\"request\",\"暂无记录\",\"status\",\".*\") or label_replace(label_replace((0 * (min(up{job=\"application\",service=~\"${service:pipe}\",env=~\"$env\",host=~\"$host\",role=~\"$role\"}) == 1)),\"status\",\"501\",\"__name__\",\".*\"),\"request\",\"暂无记录\",\"status\",\".*\") or label_replace(label_replace((0 * (min(up{job=\"application\",service=~\"${service:pipe}\",env=~\"$env\",host=~\"$host\",role=~\"$role\"}) == 1)),\"status\",\"502\",\"__name__\",\".*\"),\"request\",\"暂无记录\",\"status\",\".*\") or label_replace(label_replace((0 * (min(up{job=\"application\",service=~\"${service:pipe}\",env=~\"$env\",host=~\"$host\",role=~\"$role\"}) == 1)),\"status\",\"503\",\"__name__\",\".*\"),\"request\",\"暂无记录\",\"status\",\".*\") or label_replace(label_replace((0 * (min(up{job=\"application\",service=~\"${service:pipe}\",env=~\"$env\",host=~\"$host\",role=~\"$role\"}) == 1)),\"status\",\"504\",\"__name__\",\".*\"),\"request\",\"暂无记录\",\"status\",\".*\")",
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus"

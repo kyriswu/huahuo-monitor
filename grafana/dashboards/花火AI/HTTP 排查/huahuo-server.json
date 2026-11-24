@@ -93,10 +93,10 @@
           "uid": "prometheus"
         },
         "query": {
-          "query": "label_values(application_info{job=\"application\",service=~\"${service:pipe}\",exported_env=~\"$env\",host=~\"$host\"}, host)",
+          "query": "label_values(up{job=\"application\",service=~\"${service:pipe}\",env=~\"$env\"}, host)",
           "refId": "StandardVariableQuery"
         },
-        "definition": "label_values(application_info{job=\"application\",service=~\"${service:pipe}\",exported_env=~\"$env\",host=~\"$host\"}, host)",
+        "definition": "label_values(up{job=\"application\",service=~\"${service:pipe}\",env=~\"$env\"}, host)",
         "refresh": 1,
         "multi": true,
         "includeAll": true,
@@ -316,7 +316,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "sum(increase(http_requests_total{job=\"application\",service=~\"${service:pipe}\",exported_env=~\"$env\",host=~\"$host\",traffic=~\"${traffic:pipe}\",route=~\"${business:pipe}\",role=~\"$role\",method=~\"$method\",route=~\"$route\"}[$__range])) or (0 * count(up{job=\"application\",service=~\"${service:pipe}\",env=~\"$env\",host=~\"$host\",role=~\"$role\"}))",
+          "expr": "sum(increase(http_requests_total{job=\"application\",service=~\"${service:pipe}\",exported_env=~\"$env\",host=~\"$host\",traffic=~\"${traffic:pipe}\",route=~\"${business:pipe}\",role=~\"$role\",method=~\"$method\",route=~\"$route\"}[$__range])) or (0 * (min(up{job=\"application\",service=~\"${service:pipe}\",env=~\"$env\",host=~\"$host\",role=~\"$role\"}) == 1))",
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus"
@@ -381,7 +381,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "sum(rate(http_requests_total{job=\"application\",service=~\"${service:pipe}\",exported_env=~\"$env\",host=~\"$host\",traffic=~\"${traffic:pipe}\",route=~\"${business:pipe}\",role=~\"$role\",method=~\"$method\",route=~\"$route\"}[5m])) or (0 * count(up{job=\"application\",service=~\"${service:pipe}\",env=~\"$env\",host=~\"$host\",role=~\"$role\"}))",
+          "expr": "sum(rate(http_requests_total{job=\"application\",service=~\"${service:pipe}\",exported_env=~\"$env\",host=~\"$host\",traffic=~\"${traffic:pipe}\",route=~\"${business:pipe}\",role=~\"$role\",method=~\"$method\",route=~\"$route\"}[5m])) or (0 * (min(up{job=\"application\",service=~\"${service:pipe}\",env=~\"$env\",host=~\"$host\",role=~\"$role\"}) == 1))",
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus"
@@ -446,7 +446,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "60 * (sum(rate(http_requests_total{job=\"application\",service=~\"${service:pipe}\",exported_env=~\"$env\",host=~\"$host\",traffic=~\"${traffic:pipe}\",route=~\"${business:pipe}\",role=~\"$role\",method=~\"$method\",route=~\"$route\"}[5m]))) or (0 * count(up{job=\"application\",service=~\"${service:pipe}\",env=~\"$env\",host=~\"$host\",role=~\"$role\"}))",
+          "expr": "60 * (sum(rate(http_requests_total{job=\"application\",service=~\"${service:pipe}\",exported_env=~\"$env\",host=~\"$host\",traffic=~\"${traffic:pipe}\",route=~\"${business:pipe}\",role=~\"$role\",method=~\"$method\",route=~\"$route\"}[5m]))) or (0 * (min(up{job=\"application\",service=~\"${service:pipe}\",env=~\"$env\",host=~\"$host\",role=~\"$role\"}) == 1))",
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus"
@@ -521,7 +521,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "(sum(increase(http_requests_total{job=\"application\",service=~\"${service:pipe}\",exported_env=~\"$env\",host=~\"$host\",traffic=~\"${traffic:pipe}\",route=~\"${business:pipe}\",role=~\"$role\",method=~\"$method\",route=~\"$route\",status=~\"5..\"}[$__range])) or (0 * count(up{job=\"application\",service=~\"${service:pipe}\",env=~\"$env\",host=~\"$host\",role=~\"$role\"})))",
+          "expr": "(sum(increase(http_requests_total{job=\"application\",service=~\"${service:pipe}\",exported_env=~\"$env\",host=~\"$host\",traffic=~\"${traffic:pipe}\",route=~\"${business:pipe}\",role=~\"$role\",method=~\"$method\",route=~\"$route\",status=~\"5..\"}[$__range])) or (0 * (min(up{job=\"application\",service=~\"${service:pipe}\",env=~\"$env\",host=~\"$host\",role=~\"$role\"}) == 1)))",
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus"
@@ -658,7 +658,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "clamp_min(sum(increase(http_request_duration_seconds_count{job=\"application\",service=~\"${service:pipe}\",exported_env=~\"$env\",host=~\"$host\",traffic=~\"${traffic:pipe}\",route=~\"${business:pipe}\",role=~\"$role\",method=~\"$method\",route=~\"$route\"}[$__range])) - sum(increase(http_request_duration_seconds_bucket{job=\"application\",service=~\"${service:pipe}\",exported_env=~\"$env\",host=~\"$host\",traffic=~\"${traffic:pipe}\",route=~\"${business:pipe}\",role=~\"$role\",method=~\"$method\",route=~\"$route\",le=\"1\"}[$__range])), 0) or (0 * count(up{job=\"application\",service=~\"${service:pipe}\",env=~\"$env\",host=~\"$host\",role=~\"$role\"}))",
+          "expr": "clamp_min(sum(increase(http_request_duration_seconds_count{job=\"application\",service=~\"${service:pipe}\",exported_env=~\"$env\",host=~\"$host\",traffic=~\"${traffic:pipe}\",route=~\"${business:pipe}\",role=~\"$role\",method=~\"$method\",route=~\"$route\"}[$__range])) - sum(increase(http_request_duration_seconds_bucket{job=\"application\",service=~\"${service:pipe}\",exported_env=~\"$env\",host=~\"$host\",traffic=~\"${traffic:pipe}\",route=~\"${business:pipe}\",role=~\"$role\",method=~\"$method\",route=~\"$route\",le=\"1\"}[$__range])), 0) or (0 * (min(up{job=\"application\",service=~\"${service:pipe}\",env=~\"$env\",host=~\"$host\",role=~\"$role\"}) == 1))",
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus"
