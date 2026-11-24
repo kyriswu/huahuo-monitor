@@ -42,16 +42,15 @@ kubectl --context "$TEST_CONTEXT" -n ns-monitoring create configmap rds-slow-log
 
 ## GitHub Actions 发布
 
-[Monitoring test ACK](../.github/workflows/test-ack.yml) 在 `main` 推送时检查 Kubernetes 清单、Prometheus/Loki/Alloy 配置和 RDS 采集器。校验成功且两个发布变量齐备时，工作流使用 GitHub OIDC 临时身份串行发布到 `test` 环境。也可在 Actions 中从 `main` 重新触发。
+[Monitoring test ACK](../.github/workflows/test-ack.yml) 在 `main` 推送时检查 Kubernetes 清单、Prometheus/Loki/Alloy 配置和 RDS 采集器。校验成功且已设置固定命令 ID 时，工作流使用 GitHub OIDC 临时身份串行发布到 `test` 环境。也可在 Actions 中从 `main` 重新触发。
 
-workflow 使用北京 Node01（`i-2zeaydxol26pp3dxg1ak`）和测试账号共享的 GitHub OIDC Provider（`acs:ram::1472289886746775:oidc-provider/github-actions`）。监控固定命令与 RAM 角色分别绑定本项目的脚本和 GitHub OIDC subject。 [Server test ACK 发布配置](https://github.com/kyriswu/huahuo-server/pull/57/files)
+workflow 使用北京 Node01（`i-2zeaydxol26pp3dxg1ak`）以及账号 `1472289886746775` 共享的 OIDC Provider `github-actions` 和发布角色 `github-actions-release`。 [Server test ACK 发布配置](https://github.com/kyriswu/huahuo-server/pull/57/files)
 
 | GitHub 仓库变量 | 用途 |
 | --- | --- |
 | `TEST_ACK_MONITOR_DEPLOY_COMMAND_ID` | Node01 上监控专用固定云助手命令 ID |
-| `TEST_ACK_MONITOR_ROLE_ARN` | 阿里云账号 `1472289886746775` 的测试发布 RAM 角色 ARN |
 
-在 GitHub 的 `test` 环境允许 `main` 发布，按项目约定保持无人工审批。本仓库的默认 GitHub OIDC subject 为 `repo:kyriswu@5120703/huahuo-monitor@1466054194:environment:test`。RAM 信任策略匹配该 subject，受众为 `sts.aliyuncs.com`，操作范围限定为目标 ECS 和监控固定命令的 `InvokeCommand`、`DescribeInvocationResults`。 [GitHub OIDC subject 格式](https://docs.github.com/en/actions/reference/security/oidc#immutable-subject-claims)
+在 GitHub 的 `test` 环境允许 `main` 发布，按项目约定保持无人工审批。共享角色只信任指定仓库的 `test` 环境。本仓库的 OIDC subject 为 `repo:kyriswu@5120703/huahuo-monitor@1466054194:environment:test`。角色权限限于已配置的测试 ECS 和固定发布命令的 `InvokeCommand`、`DescribeInvocationResults`。 [GitHub OIDC subject 格式](https://docs.github.com/en/actions/reference/security/oidc#immutable-subject-claims)
 
 在能访问 test ACK 的 ECS 上，通过已具备 test ACK kubeconfig 的部署用户执行 `bash /path/to/deploy-test-from-ecs.sh --cloud-assistant '{{sha}}'`。固定云助手命令只接收完整提交参数 `sha`，可以复用 Server 发布机的内网连接。部署用户设置 `HUAHUO_TEST_ACK_CONTEXT`，宿主需要 Git、kubectl 和 jq，命令超时可设 600 秒。部署账号需要在监控范围内执行服务端 apply、观察 Deployment、读取必要的前置对象，并有权创建本清单声明的 RBAC 绑定。
 

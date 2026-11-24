@@ -46,8 +46,8 @@ jobs:
           bash -n k8s/deploy-test-from-ecs.sh
           bash -n k8s/invoke-test-deploy.sh
       - name: Report pending test deployment setup
-        if: github.event_name == 'push' && (vars.TEST_ACK_MONITOR_DEPLOY_COMMAND_ID == '' || vars.TEST_ACK_MONITOR_ROLE_ARN == '')
-        run: echo "::notice::Test deployment is pending the monitor Cloud Assistant command ID or RAM role ARN."
+        if: github.event_name == 'push' && vars.TEST_ACK_MONITOR_DEPLOY_COMMAND_ID == ''
+        run: echo "::notice::Test deployment is pending the monitor Cloud Assistant command ID."
 
   deploy:
     name: Deploy to test ACK
@@ -56,7 +56,7 @@ jobs:
       github.repository == 'kyriswu/huahuo-monitor' &&
       github.ref == 'refs/heads/main' &&
       (github.event_name == 'workflow_dispatch' ||
-       (vars.TEST_ACK_MONITOR_DEPLOY_COMMAND_ID != '' && vars.TEST_ACK_MONITOR_ROLE_ARN != ''))
+       vars.TEST_ACK_MONITOR_DEPLOY_COMMAND_ID != '')
     environment: test
     runs-on: ubuntu-latest
     timeout-minutes: 17
@@ -71,8 +71,6 @@ jobs:
       TEST_ACK_MONITOR_REGION_ID: cn-beijing
       TEST_ACK_MONITOR_ECS_INSTANCE_ID: i-2zeaydxol26pp3dxg1ak
       TEST_ACK_MONITOR_DEPLOY_COMMAND_ID: ${{ vars.TEST_ACK_MONITOR_DEPLOY_COMMAND_ID }}
-      GITHUB_OIDC_PROVIDER_ARN: acs:ram::1472289886746775:oidc-provider/github-actions
-      TEST_ACK_MONITOR_ROLE_ARN: ${{ vars.TEST_ACK_MONITOR_ROLE_ARN }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -80,19 +78,14 @@ jobs:
       - name: Check test deployment settings
         run: |
           : "${TEST_ACK_MONITOR_DEPLOY_COMMAND_ID:?Missing fixed test deployment command ID}"
-          : "${TEST_ACK_MONITOR_ROLE_ARN:?Missing test deployment RAM role ARN}"
-          if [[ ! "$TEST_ACK_MONITOR_ROLE_ARN" =~ ^acs:ram::1472289886746775:role/[a-zA-Z0-9.-]+$ ]]; then
-            echo "::error::The test deployment RAM role must belong to account 1472289886746775."
-            exit 1
-          fi
       - uses: aliyun/setup-aliyun-cli-action@09a5f86915bb556e27bf050e9a5e339aeb073df5 # v1
         with:
           version: '3.5.3'
       - name: Obtain temporary test deployment credentials
         uses: aliyun/configure-aliyun-credentials-action@1e5248c8d5d93a8781ac344a68e19a43341e79e6 # v1.1.0
         with:
-          oidc-provider-arn: ${{ env.GITHUB_OIDC_PROVIDER_ARN }}
-          role-to-assume: ${{ env.TEST_ACK_MONITOR_ROLE_ARN }}
+          oidc-provider-arn: acs:ram::1472289886746775:oidc-provider/github-actions
+          role-to-assume: acs:ram::1472289886746775:role/github-actions-release
           audience: sts.aliyuncs.com
           role-session-expiration: 1800
           role-session-name: gha-monitor-${{ github.run_id }}-${{ github.run_attempt }}
