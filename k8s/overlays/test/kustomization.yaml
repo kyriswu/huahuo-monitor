@@ -23,6 +23,15 @@ patches:
           - --storage.tsdb.path=/prometheus
           - --storage.tsdb.retention.time=30d
           - --storage.tsdb.retention.size=3GB
+  - target:
+      kind: Deployment
+      name: rds-slow-logs
+    patch: |-
+      - op: add
+        path: /spec/template/spec/containers/0/env/-
+        value:
+          name: RDS_USE_VPC_ENDPOINT
+          value: "true"
 images:
   - name: prom/prometheus
     newName: huahuoai-docker-hub-registry-vpc.cn-beijing.cr.aliyuncs.com/huahuo/huahuo-monitor

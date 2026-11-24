@@ -6,8 +6,9 @@ from pathlib import Path
 import tempfile
 import unittest
 from unittest.mock import patch
+from urllib.parse import urlsplit
 
-from collector import (Collector, CollectorError, Config, Metrics, State,
+from collector import (Collector, CollectorError, Config, Metrics, RDSClient, State,
                        normalize_record, push_loki, redact_sql)
 
 UTC = timezone.utc
@@ -188,6 +189,20 @@ class CollectorTests(unittest.TestCase):
         self.assertEqual(sent, [])
         self.assertGreater(collector.metrics.snapshot()["last_success_timestamp_seconds"], 0)
         self.assertEqual(collector.metrics.snapshot()["records_ingested_total"], 0)
+
+    def test_rds_requests_use_the_vpc_endpoint_only_when_enabled(self):
+        self.config.credential_path.write_text(json.dumps({
+            "access_key_id": "test-key", "access_key_secret": "test-secret",
+        }))
+        for use_vpc, hostname in [(False, "rds.cn-beijing.aliyuncs.com"),
+                                  (True, "rds-vpc.cn-beijing.aliyuncs.com")]:
+            with self.subTest(use_vpc=use_vpc):
+                config = replace(self.config, use_vpc_endpoint=use_vpc)
+                client = RDSClient(config, Metrics())
+                with patch("collector.urllib.request.urlopen", side_effect=CollectorError("StopRequest")) as request:
+                    with self.assertRaisesRegex(CollectorError, "StopRequest"):
+                        client.fetch_page(self.now - timedelta(minutes=5), self.now, 1)
+                self.assertEqual(urlsplit(request.call_args.args[0]).hostname, hostname)
 
     def test_push_splits_late_entries_into_bounded_hour_streams(self):
         captured = []

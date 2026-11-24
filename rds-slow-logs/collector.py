@@ -154,6 +154,7 @@ class Config:
     credential_path: Path
     poll_seconds: int = 60
     port: int = 9129
+    use_vpc_endpoint: bool = False
 
     @classmethod
     def from_env(cls) -> Config:
@@ -167,6 +168,7 @@ class Config:
             credential_path=Path(os.getenv("RDS_CREDENTIAL_FILE", "/run/secrets/rds-api.json")),
             poll_seconds=max(30, int(os.getenv("POLL_SECONDS", "60"))),
             port=int(os.getenv("METRICS_PORT", "9129")),
+            use_vpc_endpoint=os.getenv("RDS_USE_VPC_ENDPOINT", "false").lower() == "true",
         )
 
     def labels(self) -> dict[str, str]:
@@ -249,7 +251,9 @@ class RDSClient:
         to_sign = "GET&%2F&" + enc(canonical)
         params["Signature"] = base64.b64encode(hmac.new(
             (secret + "&").encode(), to_sign.encode(), hashlib.sha1).digest()).decode()
-        url = "https://rds." + self.config.region + ".aliyuncs.com/?" + urllib.parse.urlencode(params)
+        service = "rds-vpc" if self.config.use_vpc_endpoint else "rds"
+        endpoint = f"https://{service}.{self.config.region}.aliyuncs.com/"
+        url = endpoint + "?" + urllib.parse.urlencode(params)
         self.metrics.add("api_requests_total")
         try:
             with urllib.request.urlopen(url, timeout=20) as response:

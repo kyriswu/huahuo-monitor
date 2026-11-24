@@ -45,3 +45,5 @@ bash k8s/overlays/test/render.sh
 已有 PVC 如果绑定其他卷，先核对并迁移数据后再切换。首次发布结束后检查五个 PVC 均为 `Bound`，对应工作负载在 Node01 就绪。
 
 test 镜像固定到现有内网 ACR 的 ARM64 digest。ACK 的 ACR 免密组件在 `ns-monitoring` 为 `huahuo-monitor-images` ServiceAccount 自动轮换 `acr-credential-secret-aggregation`，监控 Pod 使用同命名空间的该凭据拉取镜像。
+
+test 的慢 SQL 采集器通过 `RDS_USE_VPC_ENDPOINT=true` 访问同地域 RDS 内网 API。
