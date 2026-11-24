@@ -3,13 +3,50 @@
 set -euo pipefail
 umask 077
 
-sha=${1:?Expected the full main commit SHA}
-[[ "$sha" =~ ^[0-9a-f]{40}$ ]] || { echo "Invalid commit SHA" >&2; exit 1; }
+cloud_assistant=false
+if [[ ${1:-} == --cloud-assistant ]]; then
+    cloud_assistant=true
+    shift
+fi
+if [[ $# != 1 || ! "$1" =~ ^[0-9a-f]{40}$ ]]; then
+    if [[ $cloud_assistant == true ]]; then
+        printf '%s\n' '{"status":"failed","sha":null}'
+    else
+        printf '%s\n' 'Usage: bash deploy-test-from-ecs.sh [--cloud-assistant] MAIN_COMMIT_SHA' >&2
+    fi
+    exit 2
+fi
+
+sha=$1
+workdir=
+exec 3>&1
+finish() {
+    local result=$?
+    trap - EXIT
+    if [[ -n $workdir ]]; then
+        rm -rf -- "$workdir" || true
+    fi
+    if (( result == 0 )); then
+        printf '{"status":"passed","sha":"%s"}\n' "$sha" >&3
+    elif [[ $cloud_assistant == true ]]; then
+        printf '{"status":"failed","sha":"%s"}\n' "$sha" >&3
+    fi
+    exit "$result"
+}
+trap finish EXIT
+
+if [[ $cloud_assistant == true ]]; then
+    # Keep deployment diagnostics out of the Cloud Assistant JSON receipt.
+    exec >/dev/null 2>&1
+    log_dir=${HUAHUO_MONITOR_DEPLOY_LOG_DIR:-${TMPDIR:-/tmp}}
+    log_file=$(mktemp "$log_dir/huahuo-monitor-test.$sha.XXXXXX")
+    exec >>"$log_file" 2>&1
+fi
+
 : "${HUAHUO_TEST_ACK_CONTEXT:?Set the existing test ACK kubeconfig context}"
 
 kubectl_test=(kubectl --context "$HUAHUO_TEST_ACK_CONTEXT" --request-timeout=30s)
 workdir=$(mktemp -d)
-trap 'rm -rf -- "$workdir"' EXIT
 git -C "$workdir" init -q
 git -C "$workdir" fetch -q --depth=1 https://github.com/kyriswu/huahuo-monitor.git refs/heads/main
 [[ "$(git -C "$workdir" rev-parse FETCH_HEAD)" == "$sha" ]] || { echo "main moved; deploy the latest workflow run" >&2; exit 1; }
@@ -42,4 +79,3 @@ fi
 kubectl --context "$HUAHUO_TEST_ACK_CONTEXT" -n ns-monitoring rollout status --timeout=6m \
     deployment/prometheus deployment/grafana deployment/loki deployment/alloy \
     deployment/kube-state-metrics deployment/rds-slow-logs >&2
-printf '{"status":"passed","sha":"%s"}\n' "$sha"

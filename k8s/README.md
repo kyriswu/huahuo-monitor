@@ -52,7 +52,11 @@ kubectl --context "$TEST_CONTEXT" -n ns-monitoring create configmap rds-slow-log
 | `TEST_ACK_MONITOR_ROLE_ARN` | 测试发布 RAM 角色 ARN |
 | `TEST_ACK_MONITOR_REGION_ID` | ECS 地域，默认为 `cn-beijing` |
 
-在 GitHub 的 `test` 环境允许 `main` 发布，按项目约定保持无人工审批。RAM 信任策略绑定 `repo:kyriswu/huahuo-monitor:environment:test`，受众为 `sts.aliyuncs.com`，且操作范围为目标 ECS 和固定命令的 `InvokeCommand`、`DescribeInvocationResults`。云助手命令只接收完整提交参数 `sha`，命令内容通过部署用户运行受控位置的 `bash /path/to/deploy-test-from-ecs.sh '{{sha}}'`。该用户已有 test ACK kubeconfig 和 `HUAHUO_TEST_ACK_CONTEXT`；宿主需要 Git、kubectl、jq，命令超时可设 600 秒。部署账号需要在监控范围内执行服务端 apply、观察 Deployment、读取必要的前置对象，并有权创建本清单声明的 RBAC 绑定。
+在 GitHub 的 `test` 环境允许 `main` 发布，按项目约定保持无人工审批。本仓库的默认 GitHub OIDC subject 为 `repo:kyriswu@5120703/huahuo-monitor@1466054194:environment:test`。RAM 信任策略匹配该 subject，受众为 `sts.aliyuncs.com`，操作范围限定为目标 ECS 和监控固定命令的 `InvokeCommand`、`DescribeInvocationResults`。 [GitHub OIDC subject 格式](https://docs.github.com/en/actions/reference/security/oidc#immutable-subject-claims)
+
+在能访问 test ACK 的 ECS 上，通过已具备 test ACK kubeconfig 的部署用户执行 `bash /path/to/deploy-test-from-ecs.sh --cloud-assistant '{{sha}}'`。固定云助手命令只接收完整提交参数 `sha`，可以复用 Server 发布机的内网连接。部署用户设置 `HUAHUO_TEST_ACK_CONTEXT`，宿主需要 Git、kubectl 和 jq，命令超时可设 600 秒。部署账号需要在监控范围内执行服务端 apply、观察 Deployment、读取必要的前置对象，并有权创建本清单声明的 RBAC 绑定。
+
+云助手只接收与提交 SHA 对应的 JSON 回执。部署日志保存在 ECS 上，可通过 `HUAHUO_MONITOR_DEPLOY_LOG_DIR` 指向已有的私有日志目录，默认写入 `${TMPDIR:-/tmp}`。在已有 test 权限的终端直接运行脚本时，省略 `--cloud-assistant` 即可查看正常诊断输出。
 
 脚本只发布仍为 `main` 最新版本的已验证 SHA，先做服务端 dry-run，再应用监控清单和业务命名空间内的只读 RoleBinding。发现 Server 使用项目既有的默认隔离规则时，单独放行来自监控 Prometheus 的 9464/TCP 指标流量。
 
