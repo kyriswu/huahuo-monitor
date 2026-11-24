@@ -44,7 +44,7 @@ kubectl --context "$TEST_CONTEXT" -n ns-monitoring create configmap rds-slow-log
 
 [Monitoring test ACK](../.github/workflows/test-ack.yml) 在 `main` 推送时检查 Kubernetes 清单、Prometheus/Loki/Alloy 配置和 RDS 采集器。校验成功且两个发布变量齐备时，工作流使用 GitHub OIDC 临时身份串行发布到 `test` 环境。也可在 Actions 中从 `main` 重新触发。
 
-workflow 沿用 Server test ACK 方案的北京 Node01（`i-2zeaydxol26pp3dxg1ak`）和 GitHub OIDC Provider（`acs:ram::1472289886746775:oidc-provider/github-actions-huahuo-server`）。监控固定命令与 RAM 角色分别绑定本项目的脚本和 GitHub OIDC subject。 [Server test ACK 发布配置](https://github.com/kyriswu/huahuo-server/pull/57/files)
+workflow 使用北京 Node01（`i-2zeaydxol26pp3dxg1ak`）和测试账号共享的 GitHub OIDC Provider（`acs:ram::1472289886746775:oidc-provider/github-actions`）。监控固定命令与 RAM 角色分别绑定本项目的脚本和 GitHub OIDC subject。 [Server test ACK 发布配置](https://github.com/kyriswu/huahuo-server/pull/57/files)
 
 | GitHub 仓库变量 | 用途 |
 | --- | --- |

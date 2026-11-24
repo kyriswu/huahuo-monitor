@@ -67,11 +67,11 @@ jobs:
       contents: read
       id-token: write
     env:
-      # Match the Server test ACK release host and identity provider.
+      # Use the shared test ACK release host and account-level identity provider.
       TEST_ACK_MONITOR_REGION_ID: cn-beijing
       TEST_ACK_MONITOR_ECS_INSTANCE_ID: i-2zeaydxol26pp3dxg1ak
       TEST_ACK_MONITOR_DEPLOY_COMMAND_ID: ${{ vars.TEST_ACK_MONITOR_DEPLOY_COMMAND_ID }}
-      TEST_ACK_MONITOR_OIDC_PROVIDER_ARN: acs:ram::1472289886746775:oidc-provider/github-actions-huahuo-server
+      GITHUB_OIDC_PROVIDER_ARN: acs:ram::1472289886746775:oidc-provider/github-actions
       TEST_ACK_MONITOR_ROLE_ARN: ${{ vars.TEST_ACK_MONITOR_ROLE_ARN }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -87,7 +87,7 @@ jobs:
       - name: Obtain temporary test deployment credentials
         uses: aliyun/configure-aliyun-credentials-action@1e5248c8d5d93a8781ac344a68e19a43341e79e6 # v1.1.0
         with:
-          oidc-provider-arn: ${{ env.TEST_ACK_MONITOR_OIDC_PROVIDER_ARN }}
+          oidc-provider-arn: ${{ env.GITHUB_OIDC_PROVIDER_ARN }}
           role-to-assume: ${{ env.TEST_ACK_MONITOR_ROLE_ARN }}
           audience: sts.aliyuncs.com
           role-session-expiration: 1800
